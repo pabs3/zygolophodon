@@ -194,9 +194,14 @@ class HTMLParser(html.parser.HTMLParser):
             a_depth = 0
         self.z_state = state
 
+    # FIXME: Add proper suport for:
+    # * <ol>, <ul>, <li>
+    # * <blockquote>
+    # * <pre>
+
     def handle_starttag(self, tag, attrs):
         st = self.z_state
-        if tag == 'p':
+        if tag in {'p', 'ol', 'ul', 'blockquote', 'pre'}:
             while st.a_depth > 0:
                 self.handle_endtag('a')
             if st.text:
@@ -227,6 +232,12 @@ class HTMLParser(html.parser.HTMLParser):
                 st.text += f'{text}\N{STX}{st.a_href}\N{ETX}'
                 st.a_href = ''
                 st.a_text = ''
+            return
+        if tag == 'li':
+            if st.a_depth > 0:
+                st.a_text += ' '
+            else:
+                st.text += '\n'
             return
 
     def handle_data(self, data):
