@@ -121,6 +121,7 @@ class UserAgent():
         'Accept-Encoding': 'gzip',
     }
     debug_level = 0
+    handlers = [urllib.request.HTTPHandler, urllib.request.HTTPSHandler]
 
     @classmethod
     def _build_opener(cls):
@@ -130,7 +131,7 @@ class UserAgent():
         # TODO: Get rid of this once Python < 3.12 is no longer supported.
         handlers = [
             Handler(debuglevel=cls.debug_level)
-            for Handler in [urllib.request.HTTPHandler, urllib.request.HTTPSHandler]
+            for Handler in cls.handlers
         ]
         return urllib.request.build_opener(*handlers)
 
