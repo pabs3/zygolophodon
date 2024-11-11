@@ -216,8 +216,10 @@ class HTMLParser(html.parser.HTMLParser):
                 st.text += '\n'
             return
         if tag == 'a':
+            dattrs = dict(attrs)
+            url = dattrs.get('href', '')
             if st.a_depth == 0:
-                st.a_href = dict(attrs).get('href', '')
+                st.a_href = url
             st.a_depth += 1
             return
 
