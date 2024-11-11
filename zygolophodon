@@ -295,6 +295,9 @@ def fmt_html(data):
     parser.feed(data)
     parser.close()
     lines = []
+    with open('bar', 'a') as bar:
+        print(data, file=bar)
+        print(parser.z_state.paras, file=bar)
     for para in parser.z_state.paras:
         for line in para.splitlines():
             lines += wrap_text(line)
@@ -542,6 +545,8 @@ def normalize_lang(lang):
     return lang
 
 def print_post(post, *, pinned=False, hide_in_reply_to=False):
+    if not domain:
+        raise ValueError('bad domain')
     api = f'https://{domain}/api/v1'
     output_link(f'{api}/statuses/{post.id}')
     url = post.url or post.uri
@@ -561,6 +566,8 @@ def print_post(post, *, pinned=False, hide_in_reply_to=False):
         print('Reblog: yes')
     print()
     if post.reblog:
+        with open('baz', 'a') as f:
+            print(json.dumps(post), file=f)
         reblog_url = post.reblog.url or post.reblog.uri
         reblog_domain = urllib.parse.urlparse(reblog_url).hostname
         print_post(post.reblog, domain=reblog_domain)
