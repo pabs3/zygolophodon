@@ -520,7 +520,9 @@ def print_post(post, *, pinned=False, hide_in_reply_to=False):
         print('Reblog: yes')
     print()
     if post.reblog:
-        print_post(post.reblog)
+        reblog_url = post.reblog.url or post.reblog.uri
+        reblog_domain = urllib.parse.urlparse(reblog_url).hostname
+        print_post(post.reblog, domain=reblog_domain)
     else:
         text = fmt_html(post.content)
         print(text)
