@@ -1,0 +1,37 @@
+{
+  "copyright": "Copyright © 2025 Paul Wise",
+  "license": "SPDX-License-Identifier: MIT",
+  "description": "zygolophodon client for Mastodon instances",
+  "manifest_version": 2,
+  "name": "zygolophodon",
+  "version": "0",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "zygolophodon@jwilk.net",
+      "strict_min_version": "50.0"
+    }
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*/@*",
+        "*://*/statuses/*",
+        "*://*/user/*/statuses/*",
+        "*://*/deck/@*",
+        "*://*/deck/statuses/*",
+        "*://*/deck/user/*/statuses/*"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
+  ],
+  "permissions": [
+    "nativeMessaging"
+  ]
+}
