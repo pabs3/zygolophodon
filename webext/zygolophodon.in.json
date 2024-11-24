@@ -1,0 +1,9 @@
+{
+  "name": "zygolophodon",
+  "description": "zygolophodon client for Mastodon instances",
+  "path": "/webext/native",
+  "type": "stdio",
+  "allowed_extensions": [
+    "zygolophodon@jwilk.net"
+  ]
+}

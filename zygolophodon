@@ -15,18 +15,23 @@ import os
 import re
 import shutil
 import signal
+import struct
 import subprocess
 import sys
 import textwrap
 import types
 import urllib.parse
 import urllib.request
+from xml.etree import ElementTree as e
 
 int(0_0)  # Python >= 3.6 is required
 
 __version__ = '0'  # not released yet
 
 text_width = int(os.getenv('ZYGOLOPHODON_COLUMNS', '78'))
+
+webext_msg_max_size = 1024 * 1024
+webext_length_struct = '@I'
 
 prog = argparse.ArgumentParser().prog
 
@@ -39,7 +44,24 @@ def fatal(msg):
     print(f'{prog}: {msg}', file=sys.stderr)
     sys.exit(1)
 
-class StdOut(io.TextIOBase):
+class BaseStdOut(io.TextIOBase):
+
+    def __init__(self):
+        super().__init__()
+        self._stdout = sys.__stdout__
+
+    def _get_fp(self):
+        if UserAgent.debug_level:
+            # Redirect http.client's debug messages to stderr:
+            for frameinfo in inspect.stack(context=0):
+                if frameinfo.filename == http.client.__file__:
+                    return sys.__stderr__
+        return self._stdout
+
+    def flush(self):
+        self._get_fp().flush()
+
+class PagerStdOut(BaseStdOut):
 
     def _install_pager(self):
         if not sys.__stdout__.isatty():
@@ -66,16 +88,7 @@ class StdOut(io.TextIOBase):
         super().__init__()
         self._newlines = 0
         self._pager = None
-        self._stdout = sys.__stdout__
         self._install_pager()
-
-    def _get_fp(self):
-        if UserAgent.debug_level:
-            # Redirect http.client's debug messages to stderr:
-            for frameinfo in inspect.stack(context=0):
-                if frameinfo.filename == http.client.__file__:
-                    return sys.__stderr__
-        return self._stdout
 
     def write(self, s):
         fp = self._get_fp()
@@ -89,9 +102,6 @@ class StdOut(io.TextIOBase):
             else:
                 self._newlines = int(s[-1] == '\n')
         fp.write(s)
-
-    def flush(self):
-        self._get_fp().flush()
 
     def isatty(self):
         return sys.__stdout__.isatty()
@@ -109,7 +119,46 @@ class StdOut(io.TextIOBase):
     def install():
         assert sys.stdout is sys.__stdout__
         try:
-            with StdOut() as sys.stdout:
+            with PagerStdOut() as sys.stdout:
+                yield
+        finally:
+            sys.stdout = sys.__stdout__
+
+class WebExtStdOut(BaseStdOut):
+
+    def _write_message(self, message):
+        fp = self._get_fp()
+
+        if message == '\n':
+            message = '<br/>'
+
+        if message == '-' * text_width:
+            message = '<hr/>'
+
+        if False:
+            message = json.dumps(message, separators=(',', ':')).encode('utf-8')
+            length = struct.pack(webext_length_struct, len(message))
+        else:
+            message = message.encode('utf-8')
+            length = b''
+
+        fp.buffer.write(length)
+        fp.buffer.write(message)
+        fp.buffer.flush()
+
+    def write(self, s):
+        while True:
+            message, s = s[:webext_msg_max_size], s[webext_msg_max_size:]
+            self._write_message(message)
+            if not s:
+                break
+
+    @staticmethod
+    @contextlib.contextmanager
+    def install():
+        assert sys.stdout is sys.__stdout__
+        try:
+            with WebExtStdOut() as sys.stdout:
                 yield
         finally:
             sys.stdout = sys.__stdout__
@@ -181,6 +230,9 @@ def fmt_date(d):
     d = re.sub(r'[.]\d+', '', d)
     d = d.replace('T', ' ')
     return d
+
+def fmt_emojis(data, _emojis):
+    return data
 
 class HTMLParser(html.parser.HTMLParser):
 
@@ -349,6 +401,79 @@ def pint(s):
     raise ValueError
 pint.__name__ = 'positive int'
 
+def parse_addr(ap, addr, addr_parser):
+    if '/' in addr:
+        # strip URL fragment
+        addr, _ = urllib.parse.urldefrag(addr)
+    match = addr_parser.parse(addr)
+    if match is None:
+        ap.error('unsupported address')
+    return match
+
+def process_addr_match(opts, match):
+    if match.ident is None:
+        process_user(match.domain, match.user,
+            replies=bool(match.with_replies),
+            media=bool(match.media),
+            limit=opts.limit,
+        )
+    else:
+        process_status(match.domain, match.ident,
+            context=(opts.limit > 1 and not match.embed),
+        )
+
+def html_fmt_a(url, text):
+    a = e.Element('a', attrib={'href': url})
+    a.text = text
+    return e.tostring(a, encoding='unicode', method='html')
+
+def html_fmt_url(url):
+    return html_fmt_a(url, url)
+
+def html_fmt_user(account):
+    return html_fmt_a(account.url, account.display_name)
+
+def html_fmt_date(d):
+    t = e.Element('time', attrib={'datetime': d})
+    t.text = d
+    return e.tostring(t, encoding='unicode', method='html')
+
+def html_fmt_emojis(data, emojis):
+    for emoji in emojis:
+        emoji_text = f':{emoji.shortcode}:'
+        a = e.Element('a', attrib={'href': emoji.url})
+        a.append(e.Element('img', attrib={
+            'src': emoji.static_url,
+            'alt': emoji_text,
+            'title': emoji_text,
+            'width': '24px',
+            'height': '24px',
+        }))
+        emoji_html = e.tostring(a, encoding='unicode', method='html')
+        data = data.replace(emoji_text, emoji_html)
+    return data
+
+def html_fmt_html(data):
+    return data
+
+def webext(ap, opts, addr_parser):
+    global fmt_html, fmt_emojis, fmt_url, fmt_user, fmt_date
+    fmt_html = html_fmt_html
+    fmt_emojis = html_fmt_emojis
+    fmt_url = html_fmt_url
+    fmt_user = html_fmt_user
+    fmt_date = html_fmt_date
+    with WebExtStdOut.install():
+        while True:
+            length = sys.stdin.buffer.read(4)
+            if len(length) == 0:
+               sys.exit(0)
+            length = struct.unpack(webext_length_struct, length)[0]
+            addr = json.loads(sys.stdin.buffer.read(length).decode('utf-8'))
+            match = parse_addr(ap, addr, addr_parser)
+            process_addr_match(opts, match)
+            sys.stdout.write('')
+
 def xmain():
     addr_parser = AddrParser(
         '/statuses/NNNNNN',
@@ -371,29 +496,19 @@ def xmain():
         help=f'request at most N posts (default: {default_limit})'
     )
     ap.add_argument('--debug-http', action='store_true', help=argparse.SUPPRESS)
-    ap.add_argument('addr', metavar='ADDRESS', help=str.join('\n', addr_parser.templates))
+    g = ap.add_mutually_exclusive_group(required=True)
+    g.add_argument('addr', metavar='ADDRESS', help=str.join('\n', addr_parser.templates), nargs='?')
+    g.add_argument('--webext', action='store_true', help=argparse.SUPPRESS)
     opts = ap.parse_args()
     if opts.debug_http:
         UserAgent.debug_level = 1
-    addr = opts.addr
-    if '/' in addr:
-        # strip URL fragment
-        addr, _ = urllib.parse.urldefrag(addr)
-    match = addr_parser.parse(addr)
-    if match is None:
-        ap.error('unsupported address')
+    if opts.webext:
+        webext(ap, opts, addr_parser)
+        sys.exit()
+    match = parse_addr(ap, opts.addr, addr_parser)
     sys.stdout.flush()
-    with StdOut.install():
-        if match.ident is None:
-            process_user(match.domain, match.user,
-                replies=bool(match.with_replies),
-                media=bool(match.media),
-                limit=opts.limit,
-            )
-        else:
-            process_status(match.domain, match.ident,
-                context=(opts.limit > 1 and not match.embed),
-            )
+    with PagerStdOut.install():
+        process_addr_match(opts, match)
 
 def parse_links(s):
     data = {}
@@ -415,7 +530,7 @@ def process_user(domain, account, *, replies=False, media=False, limit=1e999):
     print('User:', fmt_user(user))
     if user.note:
         print()
-        print(fmt_html(user.note))
+        print(fmt_html(fmt_emojis(user.note, user.emojis)))
     base_url = url = f'{api}/accounts/{user.id}/statuses'
     statuses = wget_json(f'{url}?pinned=true')
     print_statuses(statuses, pinned=True)
@@ -485,7 +600,7 @@ def print_post(post, *, pinned=False, domain=None):
     if post.reblog:
         print_post(post.reblog)
     else:
-        text = fmt_html(post.content)
+        text = fmt_html(fmt_emojis(post.content, post.emojis))
         print(text)
     print()
     for att in post.media_attachments or ():
