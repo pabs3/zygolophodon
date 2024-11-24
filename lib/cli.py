@@ -15,6 +15,7 @@ import signal
 import sys
 import types
 import urllib.parse
+from xml.etree import ElementTree as e
 
 import lib.compat
 import lib.html
@@ -54,6 +55,9 @@ def fmt_date(d):
     d = re.sub('[+]00:00$', 'Z', d)
     return d
 
+def fmt_emojis(data, _emojis):
+    return data
+
 fmt_html = functools.partial(lib.html.fmt_html, fmt_url=fmt_url)
 
 class VersionAction(argparse.Action):
@@ -81,6 +85,40 @@ def pint(s):
         return n
     raise ValueError
 pint.__name__ = 'positive int'
+
+def html_fmt_a(url, text):
+    a = e.Element('a', attrib={'href': url})
+    a.text = text
+    return e.tostring(a, encoding='unicode', method='html')
+
+def html_fmt_url(url):
+    return html_fmt_a(url, url)
+
+def html_fmt_user(account):
+    return html_fmt_a(account.url, account.display_name)
+
+def html_fmt_date(d):
+    t = e.Element('time', attrib={'datetime': d})
+    t.text = d
+    return e.tostring(t, encoding='unicode', method='html')
+
+def html_fmt_emojis(data, emojis):
+    for emoji in emojis:
+        emoji_text = f':{emoji.shortcode}:'
+        a = e.Element('a', attrib={'href': emoji.url})
+        a.append(e.Element('img', attrib={
+            'src': emoji.static_url,
+            'alt': emoji_text,
+            'title': emoji_text,
+            'width': '24px',
+            'height': '24px',
+        }))
+        emoji_html = e.tostring(a, encoding='unicode', method='html')
+        data = data.replace(emoji_text, emoji_html)
+    return data
+
+def html_fmt_html(data):
+    return data
 
 @compose('\n'.join)
 def fmt_addr_help(instance_types):
@@ -115,28 +153,33 @@ def xmain():
     ap.add_argument('--user-agent', help=argparse.SUPPRESS)
     ap.add_argument('--debug-http', action='store_true', help=argparse.SUPPRESS)
     addr_help = fmt_addr_help(lib.inst.Instance.types)
-    ap.add_argument('addr', metavar='ADDRESS', help=addr_help)
+    g = ap.add_mutually_exclusive_group(required=True)
+    g.add_argument('addr', metavar='ADDRESS', help=addr_help, nargs='?')
+    g.add_argument('--webext', action='store_true', help=argparse.SUPPRESS)
     opts = ap.parse_args()
     if opts.debug_http:
         http.client.HTTPConnection.debuglevel = 1
     if opts.user_agent is not None:
         lib.www.UserAgent.headers['User-Agent'] = opts.user_agent
-    addr = opts.addr
-    if '/' in addr:
-        # strip URL fragment
-        addr, _ = urllib.parse.urldefrag(addr)
-        if opts.discover:
-            resp = lib.www.UserAgent.get(addr)
-            addr = resp.final_url
+    if opts.webext:
+        webext(ap, opts)
+    else:
+        pager(ap, opts)
+
+def pager(ap, opts):
+    if not (match := lib.inst.parse_addr(opts.addr)):
             if not lib.inst.parse_addr(addr):
                 og = lib.opengraph.extract_og(resp.data)
                 og_url = og.get('url', '')
                 if '/' in og_url:
                     addr = og_url
-    if not (match := lib.inst.parse_addr(addr)):
         ap.error('unsupported address')
     sys.stdout.flush()
     with lib.stdout.install():
+        process_addr_match(opts, match)
+
+def process_addr_match(opts, match):
+    if match:
         instance = match.instance_type.connect(match.url)
         if match.tag:
             process_tag(instance, match.tag,
@@ -154,6 +197,7 @@ def xmain():
                 with_replies=with_context,
                 with_ancestors=(with_context and opts.with_ancestors),
             )
+
 
 def plural(i, noun):
     if i != 1:
@@ -187,7 +231,7 @@ def process_user(instance, username, *, replies=False, media=False, limit):
     print('User:', fmt_user(user))
     if user.note:
         print()
-        print(fmt_html(user.note))
+        print(fmt_html(fmt_emojis(user.note, user.emojis)))
     seen = set()
     if not (media or replies):
         posts = instance.fetch_user_posts(user, limit=limit, pinned=True)
@@ -291,7 +335,7 @@ def print_post(post, *, hide_in_reply_to=False):
     if post.reblog:
         print_post(post.reblog)
     else:
-        text = fmt_html(post.content)
+        text = fmt_html(fmt_emojis(post.content, post.emojis))
         print(text)
     print()
     paperclip = lib.text.symbols.paperclip

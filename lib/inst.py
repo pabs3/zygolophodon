@@ -180,6 +180,12 @@ class AddrParser:
         return types.SimpleNamespace(**data)
 
 def parse_addr(addr):
+    if '/' in addr:
+        # strip URL fragment
+        addr, _ = urllib.parse.urldefrag(addr)
+        if opts.discover:
+            resp = lib.www.UserAgent.get(addr)
+            addr = resp.final_url
     for instance_type in Instance.types:
         if match := instance_type.parse_addr(addr):
             match.instance_type = instance_type

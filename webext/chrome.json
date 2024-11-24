@@ -1,0 +1,11 @@
+{
+  "copyright": "Copyright © 2025 Paul Wise",
+  "license": "SPDX-License-Identifier: MIT",
+  "name": "zygolophodon",
+  "description": "zygolophodon client for Mastodon instances",
+  "path": "@libexecdir@/webext-native",
+  "type": "stdio",
+  "allowed_extensions": [
+    "zygolophodon@jwilk.net"
+  ]
+}
