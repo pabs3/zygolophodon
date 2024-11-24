@@ -2,6 +2,7 @@
 # encoding=UTF-8
 
 # Copyright © 2022-2025 Jakub Wilk <jwilk@jwilk.net>
+# Copyright © 2025 Paul Wise
 # SPDX-License-Identifier: MIT
 
 import abc
@@ -20,6 +21,7 @@ import re
 import shutil
 import signal
 import socket
+import struct
 import subprocess
 import sys
 import textwrap
@@ -27,12 +29,18 @@ import types
 import unicodedata
 import urllib.parse
 import urllib.request
+from xml.etree import ElementTree as e
 
 type(lambda x, /: x)  # Python >= 3.8 is required
 
 __version__ = '0'  # not released yet
 
 text_width = int(os.getenv('ZYGOLOPHODON_COLUMNS', '78'))
+
+webext_debug = sys.stdout.isatty()
+webext_msg_max_size = 1024 * 1024
+webext_length_struct = '@I'
+webext_length_struct_size = struct.calcsize(webext_length_struct)
 
 if sys.version_info < (3, 9):
     functools.cache = functools.lru_cache(maxsize=None)
@@ -152,6 +160,62 @@ class StdOut(io.TextIOBase):
         finally:
             sys.stdout = sys.__stdout__
 
+class WebExt(io.TextIOBase):
+
+    def __init__(self):
+        super().__init__()
+        self._stdout = sys.__stdout__
+
+    def _get_fp(self):
+        if http.client.HTTPConnection.debuglevel:
+            # Eww, FIXME in Python?
+            # http.client prints debug messages to stdout.
+            # Let's redirect them to stderr:
+            for frameinfo in inspect.stack(context=0):
+                if frameinfo.filename == http.client.__file__:
+                    return sys.__stderr__
+        return self._stdout
+
+    def flush(self):
+        self._get_fp().flush()
+
+    def _write_message(self, message):
+        fp = self._get_fp()
+
+        if message == '\n':
+            message = '<br/>'
+
+        if message == '-' * text_width:
+            message = '<hr/>'
+
+        if webext_debug:
+            message = message.encode('utf-8')
+            length = b''
+        else:
+            message = json.dumps(message, separators=(',', ':')).encode('utf-8')
+            length = struct.pack(webext_length_struct, len(message))
+
+        fp.buffer.write(length)
+        fp.buffer.write(message)
+        fp.buffer.flush()
+
+    def write(self, s):
+        while True:
+            message, s = s[:webext_msg_max_size], s[webext_msg_max_size:]
+            self._write_message(message)
+            if not s:
+                break
+
+    @staticmethod
+    @contextlib.contextmanager
+    def install():
+        assert sys.stdout is sys.__stdout__
+        try:
+            with WebExt() as sys.stdout:
+                yield
+        finally:
+            sys.stdout = sys.__stdout__
+
 def fmt_url_error(exc):
     if isinstance(exc, urllib.error.HTTPError):
         return str(exc)
@@ -250,6 +314,9 @@ def fmt_date(d):
     d = re.sub(r'[.]\d+', '', d)
     d = d.replace('T', ' ')
     return d
+
+def fmt_emojis(data, _emojis):
+    return data
 
 class HTMLParser(html.parser.HTMLParser):
 
@@ -455,6 +522,9 @@ class AddrParser():
         return types.SimpleNamespace(**data)
 
 def parse_addr(addr):
+    if '/' in addr:
+        # strip URL fragment
+        addr, _ = urllib.parse.urldefrag(addr)
     for instance_type in Instance.types:
         if match := instance_type.parse_addr(addr):
             return match
@@ -466,6 +536,40 @@ def pint(s):
         return n
     raise ValueError
 pint.__name__ = 'positive int'
+
+def html_fmt_a(url, text):
+    a = e.Element('a', attrib={'href': url})
+    a.text = text
+    return e.tostring(a, encoding='unicode', method='html')
+
+def html_fmt_url(url):
+    return html_fmt_a(url, url)
+
+def html_fmt_user(account):
+    return html_fmt_a(account.url, account.display_name)
+
+def html_fmt_date(d):
+    t = e.Element('time', attrib={'datetime': d})
+    t.text = d
+    return e.tostring(t, encoding='unicode', method='html')
+
+def html_fmt_emojis(data, emojis):
+    for emoji in emojis:
+        emoji_text = f':{emoji.shortcode}:'
+        a = e.Element('a', attrib={'href': emoji.url})
+        a.append(e.Element('img', attrib={
+            'src': emoji.static_url,
+            'alt': emoji_text,
+            'title': emoji_text,
+            'width': '24px',
+            'height': '24px',
+        }))
+        emoji_html = e.tostring(a, encoding='unicode', method='html')
+        data = data.replace(emoji_text, emoji_html)
+    return data
+
+def html_fmt_html(data):
+    return data
 
 def xmain():
     ap = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
@@ -489,18 +593,26 @@ def xmain():
                 line += f' ({instance_type.__name__})'
             addr_help += [line]
     addr_help = str.join('\n', addr_help)
-    ap.add_argument('addr', metavar='ADDRESS', help=addr_help)
+    g = ap.add_mutually_exclusive_group(required=True)
+    g.add_argument('addr', metavar='ADDRESS', help=addr_help, nargs='?')
+    g.add_argument('--webext', action='store_true', help=argparse.SUPPRESS)
     opts = ap.parse_args()
     if opts.debug_http:
         http.client.HTTPConnection.debuglevel = 1
-    addr = opts.addr
-    if '/' in addr:
-        # strip URL fragment
-        addr, _ = urllib.parse.urldefrag(addr)
-    if not (match := parse_addr(addr)):
+    if opts.webext:
+        webext(ap, opts)
+    else:
+        pager(ap, opts)
+
+def pager(ap, opts):
+    if not (match := parse_addr(opts.addr)):
         ap.error('unsupported address')
     sys.stdout.flush()
     with StdOut.install():
+        process_addr_match(opts, match)
+
+def process_addr_match(opts, match):
+    if match:
         instance = Instance.connect(match.url)
         if match.tag:
             process_tag(instance, match.tag,
@@ -518,6 +630,34 @@ def xmain():
                 with_replies=with_context,
                 with_ancestors=(with_context and opts.with_ancestors),
             )
+
+def webext(ap, opts):
+    global fmt_html, fmt_emojis, fmt_url, fmt_user, fmt_date
+    fmt_html = html_fmt_html
+    fmt_emojis = html_fmt_emojis
+    fmt_url = html_fmt_url
+    fmt_user = html_fmt_user
+    fmt_date = html_fmt_date
+    with WebExt.install():
+        while True:
+            if webext_debug:
+                # Read the address as a line
+                addr = sys.stdin.readline()
+                if not addr: sys.exit(0)
+                addr = addr.rstrip('\r\n')
+                if not addr: continue
+            else:
+                # Read the address from a WebExtension native-message
+                length = sys.stdin.buffer.read(webext_length_struct_size)
+                if len(length) == 0: sys.exit(0)
+                length = struct.unpack(webext_length_struct, length)[0]
+                addr = json.loads(sys.stdin.buffer.read(length).decode('utf-8'))
+            match = parse_addr(addr)
+            process_addr_match(opts, match)
+            # Signal EOF to the frontend using an empty string
+            sys.stdout.write('')
+            if webext_debug:
+                print('\n', file=sys.stdout._stdout)
 
 def parse_links(s):
     data = {}
@@ -845,7 +985,7 @@ def process_user(instance, username, *, replies=False, media=False, limit):
     print('User:', fmt_user(user))
     if user.note:
         print()
-        print(fmt_html(user.note))
+        print(fmt_html(fmt_emojis(user.note, user.emojis)))
     if not (media or replies):
         posts = instance.fetch_user_posts(user, limit=limit, pinned=True)
         limit -= print_posts(posts, pinned=True)
@@ -927,7 +1067,7 @@ def print_post(post, *, pinned=False, hide_in_reply_to=False):
     if post.reblog:
         print_post(post.reblog)
     else:
-        text = fmt_html(post.content)
+        text = fmt_html(fmt_emojis(post.content, post.emojis))
         print(text)
     print()
     for att in post.media_attachments or ():
