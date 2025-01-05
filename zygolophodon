@@ -312,6 +312,7 @@ class AddrParser():
             domain='[^/]+',
             user='[^/]+',
             ident='[0-9]+',
+            note='[a-z0-9]{16}',
         )
         def repl(match):
             s = match.group()
@@ -321,6 +322,8 @@ class AddrParser():
                 group = s.lower()
                 if group == 'nnnnnn':
                     group = 'ident'
+                elif group == 'xxxxxxxxxxxxxxxx':
+                    group = 'note'
                 regexp = group2regexp[group]
             else:
                 group = s
@@ -368,6 +371,7 @@ def xmain():
         '/@USER/NNNNNN/embed',
         # legacy user-less post
         '/statuses/NNNNNN',
+        '/notes/XXXXXXXXXXXXXXXX',
         # URI->URL redirects
         '/users/USER',
         '/users/USER/statuses/NNNNNN',
@@ -397,14 +401,14 @@ def xmain():
         ap.error('unsupported address')
     sys.stdout.flush()
     with StdOut.install():
-        if match.ident is None:
+        if match.ident is None and match.note is None:
             process_user(match.domain, match.user,
                 replies=bool(match.with_replies),
                 media=bool(match.media),
                 limit=opts.limit,
             )
         else:
-            process_status(match.domain, match.ident,
+            process_status(match.domain, match.ident or match.note,
                 with_context=(opts.limit > 1 and not match.embed),
             )
 
