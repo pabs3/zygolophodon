@@ -408,6 +408,20 @@ def parse_links(s):
         i = match.end()
     return data
 
+def fix_post(post, domain):
+    if post.in_reply_to_id:
+        url = f'https://{domain}/statuses/{post.in_reply_to_id}'
+    else:
+        url = None
+    post.in_reply_to_url = url
+    if post.reblog:
+        # FIXME
+        post.reblog.in_reply_to_url = None
+
+def fix_posts(posts, domain):
+    for post in posts:
+        fix_post(post, domain)
+
 def process_user(domain, account, *, replies=False, media=False, limit=1e999):
     api = f'https://{domain}/api/v1'
     q_account = urllib.parse.quote(account)
@@ -431,7 +445,8 @@ def process_user(domain, account, *, replies=False, media=False, limit=1e999):
     while limit > 0:
         response = wget(url)
         statuses = response.json
-        print_statuses(statuses, domain=domain)
+        fix_posts(statuses, domain)
+        print_statuses(statuses)
         limit -= len(statuses)
         links = response.headers.get('Link', '')
         links = parse_links(links)
@@ -449,17 +464,19 @@ def process_user(domain, account, *, replies=False, media=False, limit=1e999):
 def process_status(domain, ident, *, context=True):
     api = f'https://{domain}/api/v1'
     post = wget_json(f'{api}/statuses/{ident}')
-    print_post(post, domain=domain)
+    fix_post(post, domain)
+    print_post(post)
     if context:
         context = wget_json(f'{api}/statuses/{ident}/context')
-        print_statuses(context.descendants)
+        fix_posts(context.descendants, domain)
+        print_statuses(context.descendants, hide_in_reply_to=True)
 
-def print_statuses(statuses, *, pinned=False, domain=None):
+def print_statuses(statuses, *, pinned=False, hide_in_reply_to=False):
     for post in statuses:
         print()
         print('-' * text_width)
         print()
-        print_post(post, pinned=pinned, domain=domain)
+        print_post(post, pinned=pinned, hide_in_reply_to=hide_in_reply_to)
 
 def normalize_lang(lang):
     if lang is None:
@@ -468,12 +485,12 @@ def normalize_lang(lang):
         return 'en'
     return lang
 
-def print_post(post, *, pinned=False, domain=None):
+def print_post(post, *, pinned=False, hide_in_reply_to=False):
     if post.url:
         # FIXME? Should we use .uri when .url is missing?
         print('Location:', fmt_url(post.url))
-    if post.in_reply_to_id and domain:
-        print('In-Reply-To:', fmt_url(f'https://{domain}/statuses/{post.in_reply_to_id}'))
+    if post.in_reply_to_url and not hide_in_reply_to:
+        print('In-Reply-To:', fmt_url(post.in_reply_to_url))
     if pinned:
         print('Pinned: yes')
     print('From:', fmt_user(post.account))
