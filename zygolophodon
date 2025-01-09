@@ -415,8 +415,7 @@ def fix_post(post, domain):
         url = None
     post.in_reply_to_url = url
     if post.reblog:
-        # FIXME
-        post.reblog.in_reply_to_url = None
+        fix_post(post.reblog, domain)
     match = re.fullmatch('https://([^/]+)/users/([^/]+)/statuses/([0-9]+)/activity', post.url)
     if match:
         # FIXME? Why is the URL unhelpful for reblogs?
