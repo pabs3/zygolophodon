@@ -392,7 +392,7 @@ def xmain():
             )
         else:
             process_status(match.domain, match.ident,
-                context=(opts.limit > 1 and not match.embed),
+                with_context=(opts.limit > 1 and not match.embed),
             )
 
 def parse_links(s):
@@ -467,12 +467,12 @@ def process_user(domain, account, *, replies=False, media=False, limit=1e999):
             prev_url
         )
 
-def process_status(domain, ident, *, context=True):
+def process_status(domain, ident, *, with_context=True):
     api = f'https://{domain}/api/v1'
     post = wget_json(f'{api}/statuses/{ident}')
     fix_post(post, domain)
     print_post(post)
-    if context:
+    if with_context:
         context = wget_json(f'{api}/statuses/{ident}/context')
         fix_posts(context.descendants, domain)
         print_statuses(context.descendants, hide_in_reply_to=True)
