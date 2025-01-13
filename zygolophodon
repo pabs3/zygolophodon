@@ -332,7 +332,7 @@ class AddrParser():
             discard_re = str.join('|', map(re.escape, discard))
             discard_re = f'(?:{discard_re})'
             template = template.replace('/DOMAIN/', f'/DOMAIN/(?:{discard_re}/)?')
-        regexp = re.sub(r'\w+', repl, template)
+        regexp = re.sub(r'(?<![:|\w])\w+', repl, template)
         regexp = re.compile(regexp)
         self._regexps += [regexp]
 
