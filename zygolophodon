@@ -422,7 +422,7 @@ def fix_post(post, domain):
     post.in_reply_to_url = url
     if post.reblog:
         fix_post(post.reblog, domain)
-    match = re.fullmatch('https://([^/]+)/users/([^/]+)/statuses/([0-9]+)/activity', post.url)
+    match = re.fullmatch('https://([^/]+)/users/([^/]+)/statuses/([0-9]+)/activity', post.url or '')
     if match:
         # FIXME? Why is the URL unhelpful for reblogs?
         # Is this a Mastodon bug?
