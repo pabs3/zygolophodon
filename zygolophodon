@@ -295,14 +295,16 @@ class VersionAction(argparse.Action):
 
 class AddrParser():
 
-    def __init__(self, *templates):
+    def __init__(self, *templates, discard_prefixes=()):
         self.templates = []
         self._groups = set()
         self._regexps = []
+        self._discard_prefixes = discard_prefixes
         for template in templates:
             if template[0] == '/':
                 template = f'https://DOMAIN{template}'
             self._add_template(template)
+        del self._discard_prefixes
 
     def _add_template(self, template):
         self.templates += [template]
@@ -325,7 +327,11 @@ class AddrParser():
                 regexp = re.escape(s)
             self._groups.add(group)
             return f'(?P<{group}>{regexp})'
-        template = template.replace('/DOMAIN/', '/DOMAIN/(deck/)?')
+        discard = self._discard_prefixes
+        if discard:
+            discard_re = str.join('|', map(re.escape, discard))
+            discard_re = f'(?:{discard_re})'
+            template = template.replace('/DOMAIN/', f'/DOMAIN/(?:{discard_re}/)?')
         regexp = re.sub(r'\w+', repl, template)
         regexp = re.compile(regexp)
         self._regexps += [regexp]
@@ -359,6 +365,7 @@ def xmain():
         '/@USER/media',
         '@USER@DOMAIN',
         'USER@DOMAIN',
+        discard_prefixes=['deck'],
     )
     ap = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     if sys.version_info < (3, 10):
