@@ -365,7 +365,7 @@ def xmain():
         '/@USER/media',
         '@USER@DOMAIN',
         'USER@DOMAIN',
-        discard_prefixes=['deck'],
+        discard_prefixes={'deck', 'web'},
     )
     ap = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     if sys.version_info < (3, 10):
