@@ -499,9 +499,8 @@ def normalize_lang(lang):
     return lang
 
 def print_post(post, *, pinned=False, hide_in_reply_to=False):
-    if post.url:
-        # FIXME? Should we use .uri when .url is missing?
-        print('Location:', fmt_url(post.url))
+    url = post.url or post.uri
+    print('Location:', fmt_url(url))
     if post.in_reply_to_url and not hide_in_reply_to:
         print('In-Reply-To:', fmt_url(post.in_reply_to_url))
     if pinned:
