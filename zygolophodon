@@ -356,6 +356,7 @@ pint.__name__ = 'positive int'
 
 def xmain():
     addr_parser = AddrParser(
+        # FIXME: the order of items is a mess
         '/statuses/NNNNNN',
         '/users/USER/statuses/NNNNNN',
         '/users/USER',
