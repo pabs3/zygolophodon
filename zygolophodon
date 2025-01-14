@@ -507,7 +507,9 @@ def print_post(post, *, pinned=False, hide_in_reply_to=False):
         print('In-Reply-To:', fmt_url(post.in_reply_to_url))
     if pinned:
         print('Pinned: yes')
-    print('From:', fmt_user(post.account))
+    if post.account:
+        # missing on Pleroma
+        print('From:', fmt_user(post.account))
     print('Date:', fmt_date(post.created_at))
     if normalize_lang(post.language) != 'en':
         print('Language:', post.language)
