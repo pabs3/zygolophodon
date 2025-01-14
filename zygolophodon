@@ -358,6 +358,7 @@ def xmain():
     addr_parser = AddrParser(
         '/statuses/NNNNNN',
         '/users/USER/statuses/NNNNNN',
+        '/users/USER',
         '/@USER/NNNNNN',
         '/@USER/NNNNNN/embed',
         '/@USER',
