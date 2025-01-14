@@ -3,6 +3,7 @@
 # Copyright © 2022-2025 Jakub Wilk <jwilk@jwilk.net>
 # SPDX-License-Identifier: MIT
 
+import abc
 import argparse
 import contextlib
 import gzip
@@ -355,25 +356,7 @@ def pint(s):
 pint.__name__ = 'positive int'
 
 def xmain():
-    addr_parser = AddrParser(
-        # mail-like
-        '@USER@DOMAIN',
-        'USER@DOMAIN',
-        # user
-        '/@USER',
-        '/@USER/media',
-        '/@USER/with_replies',
-        # post
-        '/@USER/NNNNNN',
-        '/@USER/NNNNNN/embed',
-        # legacy user-less post
-        '/statuses/NNNNNN',
-        # URI->URL redirects
-        '/users/USER',
-        '/users/USER/statuses/NNNNNN',
-        #
-        discard_prefixes={'deck', 'web'},
-    )
+    addr_parser = Mastodon.addr_parser
     ap = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     if sys.version_info < (3, 10):
         # https://bugs.python.org/issue9694
@@ -396,15 +379,16 @@ def xmain():
     if match is None:
         ap.error('unsupported address')
     sys.stdout.flush()
+    instance = Mastodon(match.domain)
     with StdOut.install():
         if match.ident is None:
-            process_user(match.domain, match.user,
+            process_user(instance, match.user,
                 replies=bool(match.with_replies),
                 media=bool(match.media),
                 limit=opts.limit,
             )
         else:
-            process_status(match.domain, match.ident,
+            process_status(instance, match.ident,
                 with_context=(opts.limit > 1 and not match.embed),
             )
 
@@ -421,28 +405,81 @@ def parse_links(s):
         i = match.end()
     return data
 
-def fix_post(post, domain):
-    if post.in_reply_to_id:
-        url = f'https://{domain}/statuses/{post.in_reply_to_id}'
-    else:
-        url = None
-    post.in_reply_to_url = url
-    if post.reblog:
-        fix_post(post.reblog, domain)
-    match = re.fullmatch('https://([^/]+)/users/([^/]+)/statuses/([0-9]+)/activity', post.url or '')
-    if match:
-        # FIXME? Why is the URL unhelpful for reblogs?
-        # Is this a Mastodon bug?
-        (mdomain, user, ident) = match.groups()
-        if mdomain == domain:
-            post.url = f'https://{domain}/@{user}/{ident}'
+def abstractattribute():
+    return abc.abstractmethod(lambda: None)
 
-def fix_posts(posts, domain):
-    for post in posts:
-        fix_post(post, domain)
+class Instance(abc.ABC):
 
-def process_user(domain, account, *, replies=False, media=False, limit=1e999):
-    api = f'https://{domain}/api/v1'
+    post_url_template = abstractattribute()
+
+    addr_parser = abstractattribute()
+
+    def __init__(self, domain):
+        self.domain = domain
+        self.url_base = f'https://{self.domain}'
+        self.api_url = f'{self.url_base}/api/v1'
+        if self.post_url_template is NotImplemented:
+            raise TypeError(f'{type(self).__name__}.post_url_template not set')
+
+    def post_url(self, *, ident):
+        template = self.post_url_template
+        path = re.sub(r'\bIDENT\b', re.escape(ident), template)
+        return f'{self.url_base}{path}'
+
+    def fixed_post_url(self, url):
+        return url
+
+    def fix_post(self, post):
+        irt_url = None
+        if post.in_reply_to_id:
+            irt_url = self.post_url(ident=post.in_reply_to_id)
+        post.in_reply_to_url = irt_url
+        if post.reblog:
+            self.fix_post(post.reblog)
+        post.url = self.fixed_post_url(post.url)
+
+    def fix_posts(self, posts):
+        for post in posts:
+            self.fix_post(post)
+
+class Mastodon(Instance):
+
+    # Codebase: https://github.com/mastodon/mastodon
+
+    post_url_template = '/statuses/IDENT'
+
+    addr_parser = AddrParser(
+        # mail-like
+        '@USER@DOMAIN',
+        'USER@DOMAIN',
+        # user
+        '/@USER',
+        '/@USER/media',
+        '/@USER/with_replies',
+        # post
+        '/@USER/NNNNNN',
+        '/@USER/NNNNNN/embed',
+        # legacy user-less post
+        '/statuses/NNNNNN',
+        # URI->URL redirects
+        '/users/USER',
+        '/users/USER/statuses/NNNNNN',
+        #
+        discard_prefixes={'deck', 'web'},
+    )
+
+    def fixed_post_url(self, url):
+        match = re.fullmatch('https://([^/]+)/users/([^/]+)/statuses/([0-9]+)/activity', url or '')
+        if match:
+            # FIXME? Why is the URL unhelpful for reblogs?
+            # Is this a Mastodon bug?
+            (mdomain, user, ident) = match.groups()
+            if mdomain == self.domain:
+                url = f'{self.url_base}/@{user}/{ident}'
+        return url
+
+def process_user(instance, account, *, replies=False, media=False, limit=1e999):
+    api = instance.api_url
     q_account = urllib.parse.quote(account)
     user = wget_json(f'{api}/accounts/lookup?acct={q_account}')
     print('User:', fmt_user(user))
@@ -451,7 +488,7 @@ def process_user(domain, account, *, replies=False, media=False, limit=1e999):
         print(fmt_html(user.note))
     base_url = url = f'{api}/accounts/{user.id}/statuses'
     statuses = wget_json(f'{url}?pinned=true')
-    fix_posts(statuses, domain)
+    instance.fix_posts(statuses)
     print_statuses(statuses, pinned=True)
     limit -= len(statuses)
     page_limit = 40
@@ -465,7 +502,7 @@ def process_user(domain, account, *, replies=False, media=False, limit=1e999):
     while limit > 0:
         response = wget(url)
         statuses = response.json
-        fix_posts(statuses, domain)
+        instance.fix_posts(statuses)
         print_statuses(statuses)
         limit -= len(statuses)
         links = response.headers.get('Link', '')
@@ -481,14 +518,14 @@ def process_user(domain, account, *, replies=False, media=False, limit=1e999):
             prev_url
         )
 
-def process_status(domain, ident, *, with_context=True):
-    api = f'https://{domain}/api/v1'
+def process_status(instance, ident, *, with_context=True):
+    api = instance.api_url
     post = wget_json(f'{api}/statuses/{ident}')
-    fix_post(post, domain)
+    instance.fix_post(post)
     print_post(post)
     if with_context:
         context = wget_json(f'{api}/statuses/{ident}/context')
-        fix_posts(context.descendants, domain)
+        instance.fix_posts(context.descendants)
         print_statuses(context.descendants, hide_in_reply_to=True)
 
 def print_statuses(statuses, *, pinned=False, hide_in_reply_to=False):
