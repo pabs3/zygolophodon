@@ -7,16 +7,16 @@ Usage
    usage: zygolophodon [-h] [--version] [--limit N] ADDRESS
 
    positional arguments:
-     ADDRESS     https://DOMAIN/statuses/NNNNNN
-                 https://DOMAIN/users/USER/statuses/NNNNNN
-                 https://DOMAIN/users/USER
+     ADDRESS     @USER@DOMAIN
+                 USER@DOMAIN
+                 https://DOMAIN/@USER
+                 https://DOMAIN/@USER/media
+                 https://DOMAIN/@USER/with_replies
                  https://DOMAIN/@USER/NNNNNN
                  https://DOMAIN/@USER/NNNNNN/embed
-                 https://DOMAIN/@USER
-                 https://DOMAIN/@USER/with_replies
-                 https://DOMAIN/@USER/media
-                 @USER@DOMAIN
-                 USER@DOMAIN
+                 https://DOMAIN/statuses/NNNNNN
+                 https://DOMAIN/users/USER
+                 https://DOMAIN/users/USER/statuses/NNNNNN
 
    options:
      -h, --help  show this help message and exit

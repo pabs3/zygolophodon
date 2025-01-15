@@ -356,17 +356,22 @@ pint.__name__ = 'positive int'
 
 def xmain():
     addr_parser = AddrParser(
-        # FIXME: the order of items is a mess
-        '/statuses/NNNNNN',
-        '/users/USER/statuses/NNNNNN',
-        '/users/USER',
-        '/@USER/NNNNNN',
-        '/@USER/NNNNNN/embed',
-        '/@USER',
-        '/@USER/with_replies',
-        '/@USER/media',
+        # mail-like
         '@USER@DOMAIN',
         'USER@DOMAIN',
+        # user
+        '/@USER',
+        '/@USER/media',
+        '/@USER/with_replies',
+        # post
+        '/@USER/NNNNNN',
+        '/@USER/NNNNNN/embed',
+        # legacy user-less post
+        '/statuses/NNNNNN',
+        # URI->URL redirects
+        '/users/USER',
+        '/users/USER/statuses/NNNNNN',
+        #
         discard_prefixes={'deck', 'web'},
     )
     ap = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
