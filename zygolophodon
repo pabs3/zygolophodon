@@ -312,7 +312,8 @@ class AddrParser():
         group2regexp = dict(
             domain='[^/]+',
             user='[^/]+',
-            ident='[0-9]+',
+            ident='[^/]+',
+            nnnnnn='[0-9]+',
         )
         def repl(match):
             s = match.group()
@@ -320,9 +321,9 @@ class AddrParser():
                 return s
             if s.isupper():
                 group = s.lower()
+                regexp = group2regexp[group]
                 if group == 'nnnnnn':
                     group = 'ident'
-                regexp = group2regexp[group]
             else:
                 group = s
                 regexp = re.escape(s)
