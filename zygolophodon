@@ -369,7 +369,15 @@ def xmain():
         help=f'request at most N posts (default: {default_limit})'
     )
     ap.add_argument('--debug-http', action='store_true', help=argparse.SUPPRESS)
-    ap.add_argument('addr', metavar='ADDRESS', help=str.join('\n', addr_parser.templates))
+    addr_help = []
+    for instance_type in Instance.types:
+        for template in instance_type.addr_parser.templates:
+            line = template
+            if instance_type is not Mastodon:
+                line += f' ({instance_type.__name__})'
+            addr_help += [line]
+    addr_help = str.join('\n', addr_help)
+    ap.add_argument('addr', metavar='ADDRESS', help=addr_help)
     opts = ap.parse_args()
     if opts.debug_http:
         UserAgent.debug_level = 1
@@ -377,11 +385,15 @@ def xmain():
     if '/' in addr:
         # strip URL fragment
         addr, _ = urllib.parse.urldefrag(addr)
-    match = addr_parser.parse(addr)
-    if match is None:
+    for instance_type in Instance.types:
+        addr_parser = instance_type.addr_parser
+        match = addr_parser.parse(addr)
+        if match is not None:
+            instance = instance_type(match.domain)
+            break
+    else:
         ap.error('unsupported address')
     sys.stdout.flush()
-    instance = Mastodon(match.domain)
     with StdOut.install():
         if match.ident is None:
             process_user(instance, match.user,
@@ -411,6 +423,8 @@ def abstractattribute():
     return abc.abstractmethod(lambda: None)
 
 class Instance(abc.ABC):
+
+    types = []
 
     post_url_template = abstractattribute()
 
@@ -444,6 +458,12 @@ class Instance(abc.ABC):
         for post in posts:
             self.fix_post(post)
 
+    @classmethod
+    def register(cls, instance_type):
+        cls.types += [instance_type]
+        return instance_type
+
+@Instance.register
 class Mastodon(Instance):
 
     # Codebase: https://github.com/mastodon/mastodon
