@@ -296,9 +296,10 @@ class VersionAction(argparse.Action):
 
 class AddrParser():
 
+    _groups = set()
+
     def __init__(self, *templates, discard_prefixes=()):
         self.templates = []
-        self._groups = set()
         self._regexps = []
         self._discard_prefixes = discard_prefixes
         for template in templates:
