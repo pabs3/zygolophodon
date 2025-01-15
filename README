@@ -18,6 +18,7 @@ Usage
                  https://DOMAIN/users/USER
                  https://DOMAIN/users/USER/statuses/NNNNNN
                  https://DOMAIN/notes/IDENT (Iceshrimp)
+                 https://DOMAIN/notice/IDENT (Pleroma)
 
    options:
      -h, --help  show this help message and exit

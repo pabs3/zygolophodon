@@ -511,6 +511,17 @@ class Iceshrimp(Instance):
         '/notes/IDENT',
     )
 
+@Instance.register
+class Pleroma(Instance):
+
+    # Codebase: https://git.pleroma.social/pleroma/pleroma
+
+    post_url_template = '/notice/IDENT'
+
+    addr_parser = AddrParser(
+        '/notice/IDENT',
+    )
+
 def process_user(instance, account, *, replies=False, media=False, limit=1e999):
     api = instance.api_url
     q_account = urllib.parse.quote(account)
