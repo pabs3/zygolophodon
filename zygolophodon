@@ -500,6 +500,17 @@ class Mastodon(Instance):
                 url = f'{self.url_base}/@{user}/{ident}'
         return url
 
+@Instance.register
+class Iceshrimp(Instance):
+
+    # Codebase: https://iceshrimp.dev/
+
+    post_url_template = '/notes/IDENT'
+
+    addr_parser = AddrParser(
+        '/notes/IDENT',
+    )
+
 def process_user(instance, account, *, replies=False, media=False, limit=1e999):
     api = instance.api_url
     q_account = urllib.parse.quote(account)

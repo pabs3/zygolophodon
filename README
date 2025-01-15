@@ -17,6 +17,7 @@ Usage
                  https://DOMAIN/statuses/NNNNNN
                  https://DOMAIN/users/USER
                  https://DOMAIN/users/USER/statuses/NNNNNN
+                 https://DOMAIN/notes/IDENT (Iceshrimp)
 
    options:
      -h, --help  show this help message and exit
