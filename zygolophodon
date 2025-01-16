@@ -493,8 +493,8 @@ class Mastodon(Instance):
     def fixed_post_url(self, url):
         match = re.fullmatch('https://([^/]+)/users/([^/]+)/statuses/([0-9]+)/activity', url or '')
         if match:
-            # FIXME? Why is the URL unhelpful for reblogs?
-            # Is this a Mastodon bug?
+            # FIXME in Mastodon?
+            # Why is the URL unhelpful for reblogs?
             (mdomain, user, ident) = match.groups()
             if mdomain == self.domain:
                 url = f'{self.url_base}/@{user}/{ident}'
