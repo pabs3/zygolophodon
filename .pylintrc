@@ -8,6 +8,7 @@ disable =
     missing-class-docstring,
     missing-function-docstring,
     missing-module-docstring,
+    no-self-use,
     too-few-public-methods,
     too-many-locals,
     use-dict-literal,
