@@ -227,9 +227,11 @@ class HTMLParser(html.parser.HTMLParser):
             if st.a_depth > 0:
                 st.a_depth -= 1
             if st.a_depth == 0:
-                text = ''
-                if st.a_text != st.a_href:
-                    text = f'[{st.a_text}]'
+                text = st.a_text
+                if st.a_href in {text, f'http://{text}', f'https://{text}'}:
+                    text = ''
+                else:
+                    text = f'[{text}]'
                 st.text += f'{text}\N{STX}{st.a_href}\N{ETX}'
                 st.a_href = ''
                 st.a_text = ''
