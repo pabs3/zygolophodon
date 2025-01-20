@@ -454,6 +454,12 @@ class Instance(abc.ABC):
         post.in_reply_to_url = irt_url
         if post.reblog:
             self.fix_post(post.reblog)
+            if post.url == post.reblog.uri:
+                # FIXME in Pleroma?
+                # Why is the URL unhelpful?
+                post.url = None
+            if post.uri == post.reblog.uri:
+                post.uri = None
         post.url = self.fixed_post_url(post.url)
 
     def fix_posts(self, posts):
@@ -590,10 +596,6 @@ def normalize_lang(lang):
 
 def print_post(post, *, pinned=False, hide_in_reply_to=False):
     url = post.url or post.uri
-    if post.reblog and url == post.reblog.uri:
-        # FIXME in Pleroma?
-        # Why is the URL unhelpful?
-        url = None
     if url:
         print('Location:', fmt_url(url))
     if post.in_reply_to_url and not hide_in_reply_to:
