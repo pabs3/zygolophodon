@@ -1,0 +1,38 @@
+#!/usr/bin/env perl
+
+# Copyright © 2025 Jakub Wilk <jwilk@jwilk.net>
+# SPDX-License-Identifier: MIT
+
+no lib '.';  # CVE-2016-1238
+
+use strict;
+use warnings;
+use v5.14;
+
+use English qw(-no_match_vars);
+use FindBin ();
+use autodie;
+
+my $base = "$FindBin::Bin/..";
+
+open my $fh, '<', "$base/README";
+my $readme = do {
+    local $RS = undef;
+    <$fh>;
+};
+close $fh;
+open $fh, '-|', "$base/zygolophodon", '--help';
+my $usage = do {
+    local $RS = undef;
+    <$fh>;
+};
+close $fh;
+$usage =~ s/^(?=.)/   /mg;
+$readme =~ s/\n   \$ zygolophodon --help\n\K.*?(?=\n\S)/$usage/s;
+open $fh, '>', "$base/README";
+{
+    print {$fh} $readme;
+}
+close $fh;
+
+# vim:ts=4 sts=4 sw=4 et
