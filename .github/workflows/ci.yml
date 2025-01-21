@@ -30,9 +30,6 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{matrix.python}}
-    - name: install deps
-      run: |
-        python3 -m pip install html2text
     - name: run tests
       run: |
         prove -v
