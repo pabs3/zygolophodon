@@ -431,6 +431,8 @@ class Instance(abc.ABC):
 
     post_url_template = abstractattribute()
 
+    ident_regexp = abstractattribute()
+
     addr_parser = abstractattribute()
 
     def __init__(self, domain):
@@ -480,6 +482,30 @@ class Mastodon(Instance):
 
     post_url_template = '/statuses/IDENT'
 
+    ident_regexp = '[0-9]{17,18}'
+    # Source: lib/mastodon/snowflake.rb
+    #
+    # Identifiers are decimal integers:
+    #
+    #    n = (t << 16) + r
+    #
+    # where
+    #
+    #    t is milliseconds since 1970;
+    #    r are randomish lower bits.
+    #
+    # In practice, it's always
+    # either 17 digits (until 2018)
+    #     or 18 digits (2018-2453).
+    #
+    # $ export TZ=UTC0
+    # $ qalc -t '"1970-01-01" + ((10 ** 16) >> 16) ms'
+    # "1974-11-02T01:31:27"
+    # $ qalc -t '"1970-01-01" + ((10 ** 17) >> 16) ms'
+    # "2018-05-09T15:14:39"
+    # $ qalc -t '"1970-01-01" + ((10 ** 18) >> 16) ms'
+    # "2453-07-13T08:30:35"
+
     addr_parser = AddrParser(
         # mail-like
         '@USER@DOMAIN',
@@ -517,6 +543,28 @@ class Iceshrimp(Instance):
 
     post_url_template = '/notes/IDENT'
 
+    ident_regexp = '[0-9a-z]{16,24}'
+    # Source: packages/backend/src/misc/gen-id.ts
+    #
+    # Identifiers are in the form:
+    #
+    #    t || r
+    #
+    # where
+    #
+    #    t is milliseconds since 2000;
+    #    r is randomish, configurable length 8-16.
+    #
+    # Both are in base-36.
+    #
+    # The docs say the timestamp is 8 chars long
+    # (and the code indeed ensures it's _at least_ 8 chars),
+    # but that'll only suffice until 2089.
+    #
+    # $ export TZ=UTC0
+    # $ qalc -t '"2000-01-01" + (36 ** 8) ms'
+    # "2089-05-24T17:38:22"
+
     addr_parser = AddrParser(
         '/notes/IDENT',
     )
@@ -527,6 +575,26 @@ class Pleroma(Instance):
     # Codebase: https://git.pleroma.social/pleroma/pleroma
 
     post_url_template = '/notice/IDENT'
+
+    ident_regexp = '[0-9a-zA-Z]{18}'
+    # Source: https://git.pleroma.social/pleroma/flake_id
+    #
+    # Identifiers are base-62 integers:
+    #
+    #    n = (t << 64) + r
+    #
+    # where
+    #
+    #    t is milliseconds since 1970;
+    #    r are randomish lower bits.
+    #
+    # In practice, it's always 18 digits (until 2284).
+    #
+    # $ export TZ=UTC0
+    # $ qalc -t '"1970-01-01" + ((62 ** 17) >> 64) ms'
+    # "1975-01-29T11:50:12"
+    # $ qalc -t '"1970-01-01" + ((62 ** 18) >> 64) ms'
+    # "2284-10-19T13:56:44"
 
     addr_parser = AddrParser(
         '/notice/IDENT',
