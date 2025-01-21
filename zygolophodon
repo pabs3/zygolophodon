@@ -513,10 +513,9 @@ class Instance(abc.ABC):
         if post.reblog:
             self.fix_post(post.reblog)
             if post.url == post.reblog.uri:
-                # TODO: reconstruct URL based on the post id.
                 # FIXME in Pleroma?
                 # Why is the URL unhelpful?
-                post.url = None
+                post.url = self.post_url(ident=post.id)
             if post.uri == post.reblog.uri:
                 post.uri = None
             try:
