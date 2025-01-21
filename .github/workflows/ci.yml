@@ -81,5 +81,9 @@ jobs:
     - name: run perlcritic
       run: |
         perlcritic $(grep -rl '/env perl$' .)
+    - name: regenerate README
+      run: |
+        private/update-readme
+        git diff --exit-code
 
 # vim:ts=2 sts=2 sw=2 et
