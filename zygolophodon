@@ -20,6 +20,7 @@ import subprocess
 import sys
 import textwrap
 import types
+import typing
 import urllib.parse
 import urllib.request
 
@@ -595,6 +596,21 @@ def normalize_lang(lang):
         return 'en'
     return lang
 
+class Paperclip(typing.NamedTuple):
+    text: str
+    width: int
+
+def paperclip():
+    text = os.getenv('ZYGOLOPHODON_PAPERCLIP', '*')
+    match = re.fullmatch('(.*):([0-9]+)', text)
+    if match:
+        (text, width) = match.groups()
+        width = int(width)
+    else:
+        width = 1
+    return Paperclip(text=text, width=width)
+paperclip = paperclip()
+
 def print_post(post, *, pinned=False, hide_in_reply_to=False):
     url = post.url or post.uri
     if url:
@@ -619,10 +635,11 @@ def print_post(post, *, pinned=False, hide_in_reply_to=False):
         print(text)
     print()
     for att in post.media_attachments or ():
-        print('*', fmt_url(att.url))
+        print(paperclip.text, fmt_url(att.url))
         print()
         text = att.description or ''
-        text = wrap_text(text, indent='  ')
+        indent = ' ' * (1 + paperclip.width)
+        text = wrap_text(text, indent=indent)
         for line in text:
             print(line)
         print()
