@@ -301,8 +301,9 @@ class AddrParser():
 
     _groups = set()
 
-    def __init__(self, *templates, discard_prefixes=()):
+    def __init__(self, *templates, ident_regexp, discard_prefixes=()):
         self.templates = []
+        self._ident_regexp = ident_regexp
         self._regexps = []
         self._discard_prefixes = discard_prefixes
         for template in templates:
@@ -316,8 +317,7 @@ class AddrParser():
         group2regexp = dict(
             domain='[^/]+',
             user='[^/]+',
-            ident='[^/]+',
-            nnnnnn='[0-9]+',
+            ident=self._ident_regexp
         )
         def repl(match):
             s = match.group()
@@ -325,9 +325,9 @@ class AddrParser():
                 return s
             if s.isupper():
                 group = s.lower()
-                regexp = group2regexp[group]
                 if group == 'nnnnnn':
                     group = 'ident'
+                regexp = group2regexp[group]
             else:
                 group = s
                 regexp = re.escape(s)
@@ -524,6 +524,7 @@ class Mastodon(Instance):
         '/users/USER/statuses/NNNNNN',
         #
         discard_prefixes={'deck', 'web'},
+        ident_regexp=ident_regexp,
     )
 
     def fixed_post_url(self, url):
@@ -567,6 +568,7 @@ class Iceshrimp(Instance):
 
     addr_parser = AddrParser(
         '/notes/IDENT',
+        ident_regexp=ident_regexp,
     )
 
 @Instance.register
@@ -598,6 +600,7 @@ class Pleroma(Instance):
 
     addr_parser = AddrParser(
         '/notice/IDENT',
+        ident_regexp=ident_regexp,
     )
 
 def process_user(instance, account, *, replies=False, media=False, limit=1e999):
