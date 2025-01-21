@@ -3,6 +3,7 @@ on:
 - push
 - pull_request
 jobs:
+
   main:
     runs-on: ${{matrix.os}}
     strategy:
@@ -59,5 +60,26 @@ jobs:
       run: |
         python3 -m pip install restructuredtext-lint pygments
         rst-lint --level=info --encoding=UTF-8 README
+
+  nonpython:
+    strategy:
+      matrix:
+        os:
+        - ubuntu-20.04
+        - ubuntu-22.04
+        - ubuntu-24.04
+    runs-on: ${{matrix.os}}
+    steps:
+    - uses: actions/checkout@v4
+    - name: set up APT
+      run: |
+        printf 'Apt::Install-Recommends "false";\n' | sudo tee -a /etc/apt/apt.conf
+        sudo apt-get update
+    - name: install perlcritic
+      run: |
+        sudo apt-get install libperl-critic-perl
+    - name: run perlcritic
+      run: |
+        perlcritic $(grep -rl '/env perl$' .)
 
 # vim:ts=2 sts=2 sw=2 et
