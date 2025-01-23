@@ -194,6 +194,7 @@ class HTMLParser(html.parser.HTMLParser):
             a_text = ''
             a_href = None
             a_depth = 0
+            footnotes = {}
         self.z_state = state
 
     # FIXME: Add proper suport for:
@@ -229,11 +230,19 @@ class HTMLParser(html.parser.HTMLParser):
                 st.a_depth -= 1
             if st.a_depth == 0:
                 text = st.a_text
-                if st.a_href in {text, f'http://{text}', f'https://{text}'}:
-                    text = ''
+                href = st.a_href
+                if re.fullmatch(r'[@#]\w+', text) and st.footnotes.get(text, href) == href:
+                    cc = '\N{DC1}\N{DC2}'[text[0] != '@']
+                    st.text += f'{cc}{text[1:]}\N{ETX}'
+                    st.footnotes[text] = href
+                elif re.fullmatch(r'#\w+', text):
+                    st.text += '\N{DC2}' + text[1:]
                 else:
-                    text = f'[{text}]'
-                st.text += f'{text}\N{STX}{st.a_href}\N{ETX}'
+                    if st.a_href in {text, f'http://{text}', f'https://{text}'}:
+                        text = ''
+                    else:
+                        text = f'[{text}]'
+                    st.text += f'{text}\N{STX}{st.a_href}\N{ETX}'
                 st.a_href = ''
                 st.a_text = ''
             return
@@ -246,7 +255,7 @@ class HTMLParser(html.parser.HTMLParser):
 
     def handle_data(self, data):
         st = self.z_state
-        data = re.sub('[\N{STX}\N{ETX}]', '\N{REPLACEMENT CHARACTER}', data)
+        data = re.sub('[\N{STX}\N{ETX}\N{DC1}\N{DC2}]', '\N{REPLACEMENT CHARACTER}', data)
         data = re.sub(r'\s+', ' ', data)
         if st.a_depth > 0:
             st.a_text += data
@@ -273,11 +282,24 @@ def fmt_html(data):
         lines += ['']
     text = str.join('\n', lines)
     def repl(match):
-        url = match.group(1)
-        url = fmt_url(url)
-        return f'<{url}>'
-    text = re.sub('\N{STX}(.*?)\N{ETX}', repl, text, flags=re.DOTALL)
-    return text
+        (url, foottype, footnote) = match.groups()
+        if url is not None:
+            url = fmt_url(url)
+            return f'<{url}>'
+        else:
+            # FIXME: The replacement text is one character shorter
+            # than the input, so it slightly disturbs text wrapping.
+            prefix = '@#'[foottype != '\N{DC1}']
+            footnote = prefix + footnote
+            return fmt_url(footnote)
+    text = re.sub('\N{STX}(.*?)\N{ETX}|([\N{DC1}\N{DC2}])(\\w+)\N{ETX}', repl, text, flags=re.DOTALL)
+    lines = [text]
+    if parser.z_state.footnotes:
+        lines += ''
+        for footnote, url in parser.z_state.footnotes.items():
+            url = fmt_url(url)
+            lines += [f'* {footnote}: {url}']
+    return str.join('\n', lines)
 
 class VersionAction(argparse.Action):
     '''

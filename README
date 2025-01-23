@@ -63,11 +63,12 @@ Example
    Date: 2022-11-13 22:47:09Z
    Language: fi
 
-   [@xurizaemon]<https://toot.cafe/@xurizaemon>
-   [@Foone]<https://mastodon.social/@Foone> please say i'm reading that wrong.
-   `-quality 90` for PNG “as not to make the quality bad”? `-quality 90` for PNG
-   in imagemagick means zlib with max compression (good) and no PNG filters (BAD
-   in many cases)
+   @xurizaemon @Foone please say i'm reading that wrong. `-quality 90` for PNG
+   “as not to make the quality bad”? `-quality 90` for PNG in imagemagick means
+   zlib with max compression (good) and no PNG filters (BAD in many cases)
+
+   * @xurizaemon: https://toot.cafe/@xurizaemon
+   * @Foone: https://mastodon.social/@Foone
 
    ------------------------------------------------------------------------------
 
