@@ -287,6 +287,8 @@ class HTMLParser(html.parser.HTMLParser):
             # hopefully not reachable
             raise RuntimeError(message)
 
+link_symbol = Symbol('link symbol')
+
 def fmt_html(data):
     parser = HTMLParser()
     parser.feed(data)
@@ -314,7 +316,7 @@ def fmt_html(data):
         lines += ''
         for footnote, url in parser.z_state.footnotes.items():
             url = fmt_url(url)
-            lines += [f'* {footnote}: {url}']
+            lines += [f'{link_symbol} {footnote}: {url}']
     return str.join('\n', lines)
 
 class VersionAction(argparse.Action):
