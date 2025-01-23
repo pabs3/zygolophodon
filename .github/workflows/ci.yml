@@ -34,9 +34,12 @@ jobs:
     - name: run tests
       run: |
         prove -v
-    - name: network test
+    - name: Mastodon network test
       run: |
         ./zygolophodon https://infosec.exchange/@lcamtuf/109537142030669006
+    - name: Pleroma network test
+      run: |
+        ./zygolophodon https://pleroma.debian.social/notice/ApspySbhKOv7MAQZPM
     - name: install
       run: |
         make install PREFIX=~/.local
