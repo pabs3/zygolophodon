@@ -464,6 +464,12 @@ class Instance(abc.ABC):
                 post.url = None
             if post.uri == post.reblog.uri:
                 post.uri = None
+            try:
+                post.edited_at
+            except KeyError:
+                # FIXME in Pleroma?
+                # Why is the attribute missing?
+                post.edited_at = None
         post.url = self.fixed_post_url(post.url)
 
     def fix_posts(self, posts):
