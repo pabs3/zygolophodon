@@ -58,14 +58,16 @@ Example
 
    ------------------------------------------------------------------------------
 
-   Location: https://misc.name/@scanlime/109332214618889269
-   From: lime with barcode <https://misc.name/@scanlime>
-   Date: 2022-11-12 18:20:00Z
+   Location: https://piipitin.fi/@horsemankukka/109338927421015056
+   From: Kukka Häst <https://piipitin.fi/@horsemankukka>
+   Date: 2022-11-13 22:47:09Z
+   Language: fi
 
-   [@Foone]<https://mastodon.social/@Foone> i have a workflow that seems okay for
-   phone to masto with cropping... i have my photos on nextcloud, and i use that
-   client to find the photo i want and share to the tusky app, which has builtin
-   support for crop
+   [@xurizaemon]<https://toot.cafe/@xurizaemon>
+   [@Foone]<https://mastodon.social/@Foone> please say i'm reading that wrong.
+   `-quality 90` for PNG “as not to make the quality bad”? `-quality 90` for PNG
+   in imagemagick means zlib with max compression (good) and no PNG filters (BAD
+   in many cases)
 
    ------------------------------------------------------------------------------
 
