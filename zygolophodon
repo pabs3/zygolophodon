@@ -20,7 +20,6 @@ import subprocess
 import sys
 import textwrap
 import types
-import typing
 import urllib.parse
 import urllib.request
 
@@ -29,6 +28,23 @@ int(0_0)  # Python >= 3.6 is required
 __version__ = '0'  # not released yet
 
 text_width = int(os.getenv('ZYGOLOPHODON_COLUMNS', '78'))
+
+class Symbol():
+
+    def __init__(self, name):
+        name = name.upper().replace(' ', '_')
+        text = os.getenv(f'ZYGOLOPHODON_{name}', '*')
+        match = re.fullmatch('(.*):([0-9]+)', text)
+        if match:
+            (text, width) = match.groups()
+            width = int(width)
+        else:
+            width = 1
+        self._text = text
+        self.width = width
+
+    def __str__(self):
+        return self._text
 
 prog = argparse.ArgumentParser().prog
 
@@ -695,20 +711,7 @@ def normalize_lang(lang):
         return 'en'
     return lang
 
-class Paperclip(typing.NamedTuple):
-    text: str
-    width: int
-
-def paperclip():
-    text = os.getenv('ZYGOLOPHODON_PAPERCLIP', '*')
-    match = re.fullmatch('(.*):([0-9]+)', text)
-    if match:
-        (text, width) = match.groups()
-        width = int(width)
-    else:
-        width = 1
-    return Paperclip(text=text, width=width)
-paperclip = paperclip()
+paperclip = Symbol('paperclip')
 
 def print_post(post, *, pinned=False, hide_in_reply_to=False):
     url = post.url or post.uri
@@ -738,7 +741,7 @@ def print_post(post, *, pinned=False, hide_in_reply_to=False):
         print(text)
     print()
     for att in post.media_attachments or ():
-        print(paperclip.text, fmt_url(att.url))
+        print(paperclip, fmt_url(att.url))
         print()
         text = att.description or ''
         indent = ' ' * (1 + paperclip.width)
