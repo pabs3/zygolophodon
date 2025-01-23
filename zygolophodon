@@ -693,7 +693,11 @@ def print_post(post, *, pinned=False, hide_in_reply_to=False):
     if post.account:
         # missing on Pleroma
         print('From:', fmt_user(post.account))
-    print('Date:', fmt_date(post.created_at))
+    date_comment = []
+    if post.edited_at:
+        date_comment = 'edited ' + fmt_date(post.edited_at)
+        date_comment = [f'({date_comment})']
+    print('Date:', fmt_date(post.created_at), *date_comment)
     if normalize_lang(post.language) != 'en':
         print('Language:', post.language)
     if post.reblog:
