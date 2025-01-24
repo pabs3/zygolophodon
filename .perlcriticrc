@@ -4,6 +4,9 @@ verbose = %f:%l: [%p] %m\n
 [-CodeLayout::RequireTidyCode]
 # no, thanks
 
+[-ErrorHandling::RequireCarping]
+# "die" is good enough
+
 [InputOutput::RequireCheckedSyscalls]
 functions = :builtins
 exclude_functions = print say
