@@ -313,7 +313,6 @@ def fmt_html(data):
     text = re.sub('\N{STX}(.*?)\N{ETX}|([\N{DC1}\N{DC2}])(\\w+)\N{ETX}', repl, text, flags=re.DOTALL)
     lines = [text]
     if parser.z_state.footnotes:
-        lines += ''
         for footnote, url in parser.z_state.footnotes.items():
             url = fmt_url(url)
             lines += [f'{link_symbol} {footnote}: {url}']
