@@ -723,7 +723,9 @@ def print_post(post, *, pinned=False, hide_in_reply_to=False):
     if pinned:
         print('Pinned: yes')
     if post.account:
-        # missing on Pleroma
+        # FIXME in Pleroma?
+        # Why is the account information missing
+        # for some reblogged posts?
         print('From:', fmt_user(post.account))
     date_comment = []
     if post.edited_at:
