@@ -478,8 +478,6 @@ class Instance(abc.ABC):
         self.domain = domain
         self.url_base = f'https://{self.domain}'
         self.api_url = f'{self.url_base}/api/v1'
-        if self.post_url_template is NotImplemented:
-            raise TypeError(f'{type(self).__name__}.post_url_template not set')
 
     def post_url(self, *, ident):
         template = self.post_url_template
