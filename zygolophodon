@@ -431,10 +431,10 @@ def xmain():
         addr_parser = instance_type.addr_parser
         match = addr_parser.parse(addr)
         if match is not None:
-            instance = instance_type(match.domain)
             break
     else:
         ap.error('unsupported address')
+    instance = Instance.connect(match.domain)
     sys.stdout.flush()
     with StdOut.install():
         if match.ident is None:
@@ -474,10 +474,28 @@ class Instance(abc.ABC):
 
     addr_parser = abstractattribute()
 
-    def __init__(self, domain):
+    def __init__(self, domain, data):
         self.domain = domain
+        self.data = data
         self.url_base = f'https://{self.domain}'
         self.api_url = f'{self.url_base}/api/v1'
+
+    @staticmethod
+    def connect(domain):
+        api = Mastodon(domain, None).api_url
+        data = wget_json(f'{api}/instance')
+        inst_types = sorted(
+            Instance.types,
+            key=(lambda t: t.identify(data)),
+            reverse=True,
+        )
+        inst_type = inst_types[0]
+        return inst_type(domain, data)
+
+    @classmethod
+    @abc.abstractmethod
+    def identify(cls, data):
+        pass
 
     def post_url(self, *, ident):
         template = self.post_url_template
@@ -570,6 +588,10 @@ class Mastodon(Instance):
         ident_regexp=ident_regexp,
     )
 
+    @classmethod
+    def identify(cls, data):
+        return 0
+
     def fixed_post_url(self, url):
         match = re.fullmatch('https://([^/]+)/users/([^/]+)/statuses/([0-9]+)/activity', url or '')
         if match:
@@ -614,6 +636,12 @@ class Iceshrimp(Instance):
         ident_regexp=ident_regexp,
     )
 
+    @classmethod
+    def identify(cls, data):
+        if re.search(r'\bIceshrimp\b', data.version):
+            return 1
+        return -1
+
 @Instance.register
 class Pleroma(Instance):
 
@@ -645,6 +673,14 @@ class Pleroma(Instance):
         '/notice/IDENT',
         ident_regexp=ident_regexp,
     )
+
+    @classmethod
+    def identify(cls, data):
+        try:
+            data.pleroma
+        except KeyError:
+            return -1
+        return 1
 
 def process_user(instance, account, *, replies=False, media=False, limit=1e999):
     api = instance.api_url
