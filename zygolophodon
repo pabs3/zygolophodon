@@ -400,7 +400,6 @@ def pint(s):
 pint.__name__ = 'positive int'
 
 def xmain():
-    addr_parser = Mastodon.addr_parser
     ap = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     if sys.version_info < (3, 10):
         # https://bugs.python.org/issue9694
