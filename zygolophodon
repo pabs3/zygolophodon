@@ -427,8 +427,7 @@ def xmain():
         # strip URL fragment
         addr, _ = urllib.parse.urldefrag(addr)
     for instance_type in Instance.types:
-        addr_parser = instance_type.addr_parser
-        match = addr_parser.parse(addr)
+        match = instance_type.parse_addr(addr)
         if match is not None:
             break
     else:
@@ -437,8 +436,7 @@ def xmain():
     sys.stdout.flush()
     with StdOut.install():
         if match.ident is None:
-            user = urllib.parse.unquote(match.user)
-            process_user(instance, user,
+            process_user(instance, match.user,
                 replies=bool(match.with_replies),
                 media=bool(match.media),
                 limit=opts.limit,
@@ -479,6 +477,15 @@ class Instance(abc.ABC):
         self.data = data
         self.url_base = f'https://{self.domain}'
         self.api_url = f'{self.url_base}/api/v1'
+
+    @classmethod
+    def parse_addr(cls, addr):
+        match = cls.addr_parser.parse(addr)  # pylint: disable=no-member
+        if not match:
+            return None
+        if match.user is not None:
+            match.user = urllib.parse.unquote(match.user)
+        return match
 
     @staticmethod
     def connect(domain):
