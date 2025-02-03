@@ -443,7 +443,7 @@ def xmain():
                 limit=opts.limit,
             )
         else:
-            process_status(instance, match.ident,
+            process_post(instance, match.ident,
                 with_context=(opts.limit > 1 and not match.embed),
             )
 
@@ -689,10 +689,10 @@ def process_user(instance, account, *, replies=False, media=False, limit=1e999):
         print()
         print(fmt_html(user.note))
     base_url = url = f'{api}/accounts/{user.id}/statuses'
-    statuses = wget_json(f'{url}?pinned=true')
-    instance.fix_posts(statuses)
-    print_statuses(statuses, pinned=True)
-    limit -= len(statuses)
+    posts = wget_json(f'{url}?pinned=true')
+    instance.fix_posts(posts)
+    print_posts(posts, pinned=True)
+    limit -= len(posts)
     page_limit = 40
     url = base_url
     if media:
@@ -703,10 +703,10 @@ def process_user(instance, account, *, replies=False, media=False, limit=1e999):
     url += f'&limit={min(limit, page_limit)}'
     while limit > 0:
         response = wget(url)
-        statuses = response.json
-        instance.fix_posts(statuses)
-        print_statuses(statuses)
-        limit -= len(statuses)
+        posts = response.json
+        instance.fix_posts(posts)
+        print_posts(posts)
+        limit -= len(posts)
         links = response.headers.get('Link', '')
         links = parse_links(links)
         prev_url = links.get('next')
@@ -720,7 +720,7 @@ def process_user(instance, account, *, replies=False, media=False, limit=1e999):
             prev_url
         )
 
-def process_status(instance, ident, *, with_context=True):
+def process_post(instance, ident, *, with_context=True):
     api = instance.api_url
     post = wget_json(f'{api}/statuses/{ident}')
     instance.fix_post(post)
@@ -728,10 +728,10 @@ def process_status(instance, ident, *, with_context=True):
     if with_context:
         context = wget_json(f'{api}/statuses/{ident}/context')
         instance.fix_posts(context.descendants)
-        print_statuses(context.descendants, hide_in_reply_to=True)
+        print_posts(context.descendants, hide_in_reply_to=True)
 
-def print_statuses(statuses, *, pinned=False, hide_in_reply_to=False):
-    for post in statuses:
+def print_posts(posts, *, pinned=False, hide_in_reply_to=False):
+    for post in posts:
         print()
         print('-' * text_width)
         print()
