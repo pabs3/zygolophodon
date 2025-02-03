@@ -432,7 +432,7 @@ def xmain():
             break
     else:
         ap.error('unsupported address')
-    instance = Instance.connect(match.domain)
+    instance = Instance.connect(match.url)
     sys.stdout.flush()
     with StdOut.install():
         if match.ident is None:
@@ -472,10 +472,9 @@ class Instance(abc.ABC):
 
     addr_parser = abstractattribute()
 
-    def __init__(self, domain, data):
-        self.domain = domain
+    def __init__(self, url, data):
         self.data = data
-        self.url = f'https://{self.domain}'
+        self.url = url
         self.api_url = f'{self.url}/api/v1'
 
     @classmethod
@@ -485,11 +484,13 @@ class Instance(abc.ABC):
             return None
         if match.user is not None:
             match.user = urllib.parse.unquote(match.user)
+        match.url = f'https://{match.domain}'
+        del match.domain
         return match
 
     @staticmethod
-    def connect(domain):
-        api = Mastodon(domain, None).api_url
+    def connect(url):
+        api = Mastodon(url, None).api_url
         data = wget_json(f'{api}/instance')
         inst_types = sorted(
             Instance.types,
@@ -497,7 +498,7 @@ class Instance(abc.ABC):
             reverse=True,
         )
         inst_type = inst_types[0]
-        return inst_type(domain, data)
+        return inst_type(url, data)
 
     @classmethod
     @abc.abstractmethod
@@ -599,13 +600,13 @@ class Mastodon(Instance):
         return 0
 
     def get_fixed_post_url(self, url):
-        match = re.fullmatch('https://([^/]+)/users/([^/]+)/statuses/([0-9]+)/activity', url or '')
+        q_base_url = re.escape(self.url)
+        match = re.fullmatch(q_base_url + '/users/([^/]+)/statuses/([0-9]+)/activity', url or '')
         if match:
             # FIXME in Mastodon?
             # Why is the URL unhelpful for reblogs?
-            (mdomain, user, ident) = match.groups()
-            if mdomain == self.domain:
-                url = f'{self.url}/@{user}/{ident}'
+            (user, ident) = match.groups()
+            url = f'{self.url}/@{user}/{ident}'
         return url
 
 @Instance.register
