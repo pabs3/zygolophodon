@@ -788,13 +788,23 @@ def process_post(instance, post_id, *, with_replies=True):
         context = instance.fetch_post_context(post_id, ancestors=False, descendants=True)
         print_posts(context.descendants, hide_in_reply_to=True)
 
-def print_posts(posts, *, pinned=False, hide_in_reply_to=False):
+def print_separator(ch):
+    print()
+    print(ch * text_width)
+    print()
+
+def print_posts(posts, *, pinned=False, hide_in_reply_to=False, separators='-- '):
+    def print_sep(i):
+        ch = separators[i]
+        if ch.isspace():
+            return
+        print_separator(ch)
     n = 0
     for n, post in enumerate(posts, start=1):
-        print()
-        print('-' * text_width)
-        print()
+        print_sep(n > 1)
         print_post(post, pinned=pinned, hide_in_reply_to=hide_in_reply_to)
+    if n > 0:
+        print_sep(-1)
     return n
 
 def normalize_lang(lang):
