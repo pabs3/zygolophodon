@@ -6,6 +6,7 @@
 import abc
 import argparse
 import contextlib
+import errno
 import gzip
 import html.parser
 import http.client
@@ -16,6 +17,7 @@ import os
 import re
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import textwrap
@@ -132,6 +134,23 @@ class StdOut(io.TextIOBase):
         finally:
             sys.stdout = sys.__stdout__
 
+def fmt_url_error(exc):
+    if isinstance(exc, urllib.error.HTTPError):
+        return str(exc)
+    exc = exc.reason
+    if isinstance(exc, socket.gaierror):
+        for key, value in vars(socket).items():
+            if key[:4] == 'EAI_' and value == exc.errno:
+                return f'[{key}] {exc.strerror}'
+    if isinstance(exc, ConnectionError):
+        try:
+            ec = errno.errorcode[exc.errno]
+        except LookupError:
+            pass
+        else:
+            return f'[{ec}] {exc.strerror}'
+    return str(exc)
+
 class UserAgent():
 
     headers = {
@@ -157,7 +176,11 @@ class UserAgent():
         headers = dict(cls.headers)
         request = urllib.request.Request(url, headers=headers)
         opener = cls._build_opener()
-        response = opener.open(request)
+        try:
+            response = opener.open(request)
+        except urllib.error.URLError as exc:
+            msg = fmt_url_error(exc)
+            fatal(f'<{url}>: {msg}')
         return Response(response)
 
 class Response():
