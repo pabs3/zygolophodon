@@ -444,7 +444,7 @@ def xmain():
             )
         else:
             process_post(instance, match.ident,
-                with_context=(opts.limit > 1 and not match.embed),
+                with_replies=(opts.limit > 1 and not match.embed),
             )
 
 def parse_links(s):
@@ -720,12 +720,12 @@ def process_user(instance, account, *, replies=False, media=False, limit=1e999):
             prev_url
         )
 
-def process_post(instance, ident, *, with_context=True):
+def process_post(instance, ident, *, with_replies=True):
     api = instance.api_url
     post = wget_json(f'{api}/statuses/{ident}')
     instance.fix_post(post)
     print_post(post)
-    if with_context:
+    if with_replies:
         context = wget_json(f'{api}/statuses/{ident}/context')
         instance.fix_posts(context.descendants)
         print_posts(context.descendants, hide_in_reply_to=True)
