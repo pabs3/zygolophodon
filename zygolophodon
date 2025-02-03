@@ -721,10 +721,11 @@ def process_user(instance, account, *, replies=False, media=False, limit=1e999):
         print()
         print(fmt_html(user.note))
     base_url = url = f'{api}/accounts/{user.id}/statuses'
-    posts = wget_json(f'{url}?pinned=true')
-    instance.fix_posts(posts)
-    print_posts(posts, pinned=True)
-    limit -= len(posts)
+    if not (media or replies):
+        posts = wget_json(f'{url}?pinned=true')
+        instance.fix_posts(posts)
+        print_posts(posts, pinned=True)
+        limit -= len(posts)
     page_limit = 40
     url = base_url
     if media:
