@@ -496,25 +496,25 @@ class Instance(abc.ABC):
     def identify(cls, data):
         pass
 
-    def post_url(self, *, ident):
+    def get_post_url(self, *, ident):
         template = self.post_url_template
         path = re.sub(r'\bIDENT\b', re.escape(ident), template)
         return f'{self.url_base}{path}'
 
-    def fixed_post_url(self, url):
+    def get_fixed_post_url(self, url):
         return url
 
     def fix_post(self, post):
         irt_url = None
         if post.in_reply_to_id:
-            irt_url = self.post_url(ident=post.in_reply_to_id)
+            irt_url = self.get_post_url(ident=post.in_reply_to_id)
         post.in_reply_to_url = irt_url
         if post.reblog:
             self.fix_post(post.reblog)
             if post.url == post.reblog.uri:
                 # FIXME in Pleroma?
                 # Why is the URL unhelpful?
-                post.url = self.post_url(ident=post.id)
+                post.url = self.get_post_url(ident=post.id)
             if post.uri == post.reblog.uri:
                 post.uri = None
             try:
@@ -523,7 +523,7 @@ class Instance(abc.ABC):
                 # FIXME in Pleroma?
                 # Why is the attribute missing?
                 post.edited_at = None
-        post.url = self.fixed_post_url(post.url)
+        post.url = self.get_fixed_post_url(post.url)
 
     def fix_posts(self, posts):
         for post in posts:
@@ -590,7 +590,7 @@ class Mastodon(Instance):
     def identify(cls, data):
         return 0
 
-    def fixed_post_url(self, url):
+    def get_fixed_post_url(self, url):
         match = re.fullmatch('https://([^/]+)/users/([^/]+)/statuses/([0-9]+)/activity', url or '')
         if match:
             # FIXME in Mastodon?
