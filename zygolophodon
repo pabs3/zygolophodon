@@ -475,8 +475,8 @@ class Instance(abc.ABC):
     def __init__(self, domain, data):
         self.domain = domain
         self.data = data
-        self.url_base = f'https://{self.domain}'
-        self.api_url = f'{self.url_base}/api/v1'
+        self.url = f'https://{self.domain}'
+        self.api_url = f'{self.url}/api/v1'
 
     @classmethod
     def parse_addr(cls, addr):
@@ -507,7 +507,7 @@ class Instance(abc.ABC):
     def get_post_url(self, *, ident):
         template = self.post_url_template
         path = re.sub(r'\bIDENT\b', re.escape(ident), template)
-        return f'{self.url_base}{path}'
+        return f'{self.url}{path}'
 
     def get_fixed_post_url(self, url):
         return url
@@ -605,7 +605,7 @@ class Mastodon(Instance):
             # Why is the URL unhelpful for reblogs?
             (mdomain, user, ident) = match.groups()
             if mdomain == self.domain:
-                url = f'{self.url_base}/@{user}/{ident}'
+                url = f'{self.url}/@{user}/{ident}'
         return url
 
 @Instance.register
