@@ -354,8 +354,8 @@ class AddrParser():
     def _add_template(self, template):
         self.templates += [template]
         group2regexp = dict(
-            domain='[^@/?#]+',
-            user='[^/?#]+',
+            domain=r'[^@/?#\0-\40]+',
+            user=r'[^/?#\0-\40]+',
             ident=self._ident_regexp
         )
         def repl(match):
