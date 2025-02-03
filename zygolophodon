@@ -437,7 +437,8 @@ def xmain():
     sys.stdout.flush()
     with StdOut.install():
         if match.ident is None:
-            process_user(instance, match.user,
+            user = urllib.parse.unquote(match.user)
+            process_user(instance, user,
                 replies=bool(match.with_replies),
                 media=bool(match.media),
                 limit=opts.limit,
