@@ -528,6 +528,11 @@ class Instance(abc.ABC):
     def identify(cls, data):
         pass
 
+    def fetch_user_by_name(self, name):
+        api = self.api_url
+        q_name = urllib.parse.quote(name)
+        return wget_json(f'{api}/accounts/lookup?acct={q_name}')
+
     def get_post_url(self, *, ident):
         template = self.post_url_template
         path = re.sub(r'\bIDENT\b', re.escape(ident), template)
@@ -714,8 +719,7 @@ class Pleroma(Instance):
 
 def process_user(instance, account, *, replies=False, media=False, limit=1e999):
     api = instance.api_url
-    q_account = urllib.parse.quote(account)
-    user = wget_json(f'{api}/accounts/lookup?acct={q_account}')
+    user = instance.fetch_user_by_name(account)
     print('User:', fmt_user(user))
     if user.note:
         print()
