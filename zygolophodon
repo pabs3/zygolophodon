@@ -363,9 +363,9 @@ class AddrParser():
 
     _groups = set()
 
-    def __init__(self, *templates, ident_regexp, discard_prefixes=()):
+    def __init__(self, *templates, post_id_regexp, discard_prefixes=()):
         self.templates = []
-        self._ident_regexp = ident_regexp
+        self._post_id_regexp = post_id_regexp
         self._regexps = []
         self._discard_prefixes = discard_prefixes
         for template in templates:
@@ -379,7 +379,7 @@ class AddrParser():
         group2regexp = dict(
             domain=r'[^@/?#\0-\40]+',
             user=r'[^/?#\0-\40]+',
-            ident=self._ident_regexp
+            ident=self._post_id_regexp
         )
         def repl(match):
             s = match.group()
@@ -465,7 +465,7 @@ def xmain():
                 limit=opts.limit,
             )
         else:
-            process_post(instance, match.ident,
+            process_post(instance, post_id=match.ident,
                 with_replies=(opts.limit > 1 and not match.embed),
             )
 
@@ -491,7 +491,7 @@ class Instance(abc.ABC):
 
     post_url_template = abstractattribute()
 
-    ident_regexp = abstractattribute()
+    post_id_regexp = abstractattribute()
 
     addr_parser = abstractattribute()
 
@@ -580,9 +580,9 @@ class Instance(abc.ABC):
             context.descendants = None
         return context
 
-    def get_post_url(self, *, ident):
+    def get_post_url(self, *, post_id):
         template = self.post_url_template
-        path = re.sub(r'\bIDENT\b', re.escape(ident), template)
+        path = re.sub(r'\bIDENT\b', re.escape(post_id), template)
         return f'{self.url}{path}'
 
     def get_fixed_post_url(self, url):
@@ -591,14 +591,14 @@ class Instance(abc.ABC):
     def fix_post(self, post):
         irt_url = None
         if post.in_reply_to_id:
-            irt_url = self.get_post_url(ident=post.in_reply_to_id)
+            irt_url = self.get_post_url(post_id=post.in_reply_to_id)
         post.in_reply_to_url = irt_url
         if post.reblog:
             self.fix_post(post.reblog)
             if post.url == post.reblog.uri:
                 # FIXME in Pleroma?
                 # Why is the URL unhelpful?
-                post.url = self.get_post_url(ident=post.id)
+                post.url = self.get_post_url(post_id=post.id)
             if post.uri == post.reblog.uri:
                 post.uri = None
             try:
@@ -625,7 +625,7 @@ class Mastodon(Instance):
 
     post_url_template = '/statuses/IDENT'
 
-    ident_regexp = '[0-9]{17,18}'
+    post_id_regexp = '[0-9]{17,18}'
     # Source: lib/mastodon/snowflake.rb
     #
     # Identifiers are decimal integers:
@@ -667,7 +667,7 @@ class Mastodon(Instance):
         '/users/USER/statuses/NNNNNN',
         #
         discard_prefixes={'deck', 'web'},
-        ident_regexp=ident_regexp,
+        post_id_regexp=post_id_regexp,
     )
 
     @classmethod
@@ -680,8 +680,8 @@ class Mastodon(Instance):
         if match:
             # FIXME in Mastodon?
             # Why is the URL unhelpful for reblogs?
-            (user, ident) = match.groups()
-            url = f'{self.url}/@{user}/{ident}'
+            (user, post_id) = match.groups()
+            url = f'{self.url}/@{user}/{post_id}'
         return url
 
 @Instance.register
@@ -691,7 +691,7 @@ class Iceshrimp(Instance):
 
     post_url_template = '/notes/IDENT'
 
-    ident_regexp = '[0-9a-z]{16,24}'
+    post_id_regexp = '[0-9a-z]{16,24}'
     # Source: packages/backend/src/misc/gen-id.ts
     #
     # Identifiers are in the form:
@@ -715,7 +715,7 @@ class Iceshrimp(Instance):
 
     addr_parser = AddrParser(
         '/notes/IDENT',
-        ident_regexp=ident_regexp,
+        post_id_regexp=post_id_regexp,
     )
 
     @classmethod
@@ -731,7 +731,7 @@ class Pleroma(Instance):
 
     post_url_template = '/notice/IDENT'
 
-    ident_regexp = '[0-9a-zA-Z]{18}'
+    post_id_regexp = '[0-9a-zA-Z]{18}'
     # Source: https://git.pleroma.social/pleroma/flake_id
     #
     # Identifiers are base-62 integers:
@@ -753,7 +753,7 @@ class Pleroma(Instance):
 
     addr_parser = AddrParser(
         '/notice/IDENT',
-        ident_regexp=ident_regexp,
+        post_id_regexp=post_id_regexp,
     )
 
     @classmethod
@@ -781,11 +781,11 @@ def process_user(instance, username, *, replies=False, media=False, limit=1e999)
     posts = instance.fetch_user_posts(user, limit=limit, **vars(params))
     print_posts(posts)
 
-def process_post(instance, ident, *, with_replies=True):
-    post = instance.fetch_post(ident)
+def process_post(instance, post_id, *, with_replies=True):
+    post = instance.fetch_post(post_id)
     print_post(post)
     if with_replies:
-        context = instance.fetch_post_context(ident, ancestors=False, descendants=True)
+        context = instance.fetch_post_context(post_id, ancestors=False, descendants=True)
         print_posts(context.descendants, hide_in_reply_to=True)
 
 def print_posts(posts, *, pinned=False, hide_in_reply_to=False):
