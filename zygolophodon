@@ -558,6 +558,28 @@ class Instance(abc.ABC):
                 next_url
             )
 
+    def fetch_post(self, post_id):
+        api = self.api_url
+        post = wget_json(f'{api}/statuses/{post_id}')
+        self.fix_post(post)
+        return post
+
+    def fetch_post_context(self, post_id, ancestors=True, descendants=True):
+        if not (ancestors or descendants):
+            # shortcut:
+            return Dict(ancestors=None, descendants=None)
+        api = self.api_url
+        context = wget_json(f'{api}/statuses/{post_id}/context')
+        if ancestors:
+            self.fix_posts(context.ancestors)
+        else:
+            context.ancestors = None
+        if descendants:
+            self.fix_posts(context.descendants)
+        else:
+            context.descendants = None
+        return context
+
     def get_post_url(self, *, ident):
         template = self.post_url_template
         path = re.sub(r'\bIDENT\b', re.escape(ident), template)
@@ -760,13 +782,10 @@ def process_user(instance, username, *, replies=False, media=False, limit=1e999)
     print_posts(posts)
 
 def process_post(instance, ident, *, with_replies=True):
-    api = instance.api_url
-    post = wget_json(f'{api}/statuses/{ident}')
-    instance.fix_post(post)
+    post = instance.fetch_post(ident)
     print_post(post)
     if with_replies:
-        context = wget_json(f'{api}/statuses/{ident}/context')
-        instance.fix_posts(context.descendants)
+        context = instance.fetch_post_context(ident, ancestors=False, descendants=True)
         print_posts(context.descendants, hide_in_reply_to=True)
 
 def print_posts(posts, *, pinned=False, hide_in_reply_to=False):
