@@ -717,9 +717,9 @@ class Pleroma(Instance):
             return -1
         return 1
 
-def process_user(instance, account, *, replies=False, media=False, limit=1e999):
+def process_user(instance, username, *, replies=False, media=False, limit=1e999):
     api = instance.api_url
-    user = instance.fetch_user_by_name(account)
+    user = instance.fetch_user_by_name(username)
     print('User:', fmt_user(user))
     if user.note:
         print()
