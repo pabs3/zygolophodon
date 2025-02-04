@@ -796,7 +796,7 @@ def process_post(instance, post_id, *, with_replies=True, with_ancestors=False):
         print_posts(context.ancestors, hide_in_reply_to=True, separators=' -=')
     print_post(post, hide_in_reply_to=with_ancestors)
     if with_replies:
-        print_posts(context.descendants, hide_in_reply_to=True)
+        print_posts(context.descendants, hide_in_reply_to=True, separators='=- ')
 
 def print_separator(ch):
     print()
