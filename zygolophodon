@@ -533,6 +533,31 @@ class Instance(abc.ABC):
         q_name = urllib.parse.quote(name)
         return wget_json(f'{api}/accounts/lookup?acct={q_name}')
 
+    def fetch_user_posts(self, user, *, limit=1e999, **params):
+        api = self.api_url
+        page_limit = 40
+        params['limit'] = min(limit, page_limit)
+        q_params = urllib.parse.urlencode(params).lower()
+        url = f'{api}/accounts/{user.id}/statuses?{q_params}'
+        while limit > 0:
+            response = wget(url)
+            posts = response.json
+            self.fix_posts(posts)
+            yield from posts
+            limit -= len(posts)
+            links = response.headers.get('Link', '')
+            links = parse_links(links)
+            next_url = links.get('next')
+            if next_url is None:
+                break
+            if not url.startswith(f'{api}/'):
+                raise RuntimeError(f'suspicious Link URL: {next_url!r}')
+            url = re.sub(
+                r'(?<=[?&]limit=)\d+(?=&|\Z)',
+                str(min(limit, page_limit)),
+                next_url
+            )
+
     def get_post_url(self, *, ident):
         template = self.post_url_template
         path = re.sub(r'\bIDENT\b', re.escape(ident), template)
@@ -718,44 +743,21 @@ class Pleroma(Instance):
         return 1
 
 def process_user(instance, username, *, replies=False, media=False, limit=1e999):
-    api = instance.api_url
     user = instance.fetch_user_by_name(username)
     print('User:', fmt_user(user))
     if user.note:
         print()
         print(fmt_html(user.note))
-    base_url = url = f'{api}/accounts/{user.id}/statuses'
     if not (media or replies):
-        posts = wget_json(f'{url}?pinned=true')
-        instance.fix_posts(posts)
-        print_posts(posts, pinned=True)
-        limit -= len(posts)
-    page_limit = 40
-    url = base_url
+        posts = instance.fetch_user_posts(user, limit=limit, pinned=True)
+        limit -= print_posts(posts, pinned=True)
+    params = types.SimpleNamespace()
     if media:
-        url += '?only_media=true'
+        params.only_media=True
     else:
-        no_replies = str(not replies).lower()
-        url += f'?exclude_replies={no_replies}'
-    url += f'&limit={min(limit, page_limit)}'
-    while limit > 0:
-        response = wget(url)
-        posts = response.json
-        instance.fix_posts(posts)
-        print_posts(posts)
-        limit -= len(posts)
-        links = response.headers.get('Link', '')
-        links = parse_links(links)
-        next_url = links.get('next')
-        if next_url is None:
-            break
-        if not url.startswith(f'{api}/'):
-            raise RuntimeError(f'suspicious Link URL: {next_url!r}')
-        url = re.sub(
-            r'(?<=[?&]limit=)\d+(?=&|\Z)',
-            str(min(limit, page_limit)),
-            next_url
-        )
+        params.exclude_replies = not replies
+    posts = instance.fetch_user_posts(user, limit=limit, **vars(params))
+    print_posts(posts)
 
 def process_post(instance, ident, *, with_replies=True):
     api = instance.api_url
@@ -768,11 +770,13 @@ def process_post(instance, ident, *, with_replies=True):
         print_posts(context.descendants, hide_in_reply_to=True)
 
 def print_posts(posts, *, pinned=False, hide_in_reply_to=False):
-    for post in posts:
+    n = 0
+    for n, post in enumerate(posts, start=1):
         print()
         print('-' * text_width)
         print()
         print_post(post, pinned=pinned, hide_in_reply_to=hide_in_reply_to)
+    return n
 
 def normalize_lang(lang):
     if lang is None:
