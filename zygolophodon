@@ -498,7 +498,7 @@ class Instance(abc.ABC):
     def __init__(self, url, data):
         self.data = data
         self.url = url
-        self.api_url = f'{self.url}/api/v1'
+        self.api_url = f'{url}/api/v1'
 
     @classmethod
     def parse_addr(cls, addr):
