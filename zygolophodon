@@ -432,6 +432,9 @@ def xmain():
     ap.add_argument('--limit', metavar='N', type=pint, default=default_limit,
         help=f'request at most N posts (default: {default_limit})'
     )
+    ap.add_argument('--with-ancestors', action='store_true',
+        help='show also post ancestors'
+    )
     ap.add_argument('--debug-http', action='store_true', help=argparse.SUPPRESS)
     addr_help = []
     for instance_type in Instance.types:
@@ -465,8 +468,10 @@ def xmain():
                 limit=opts.limit,
             )
         else:
+            with_context = opts.limit > 1 and not match.embed
             process_post(instance, post_id=match.ident,
-                with_replies=(opts.limit > 1 and not match.embed),
+                with_replies=with_context,
+                with_ancestors=(with_context and opts.with_ancestors),
             )
 
 def parse_links(s):
@@ -781,11 +786,16 @@ def process_user(instance, username, *, replies=False, media=False, limit=1e999)
     posts = instance.fetch_user_posts(user, limit=limit, **vars(params))
     print_posts(posts)
 
-def process_post(instance, post_id, *, with_replies=True):
+def process_post(instance, post_id, *, with_replies=True, with_ancestors=False):
     post = instance.fetch_post(post_id)
-    print_post(post)
+    context = instance.fetch_post_context(post_id,
+        ancestors=with_ancestors,
+        descendants=with_replies,
+    )
+    if with_ancestors:
+        print_posts(context.ancestors, hide_in_reply_to=True, separators=' -=')
+    print_post(post, hide_in_reply_to=with_ancestors)
     if with_replies:
-        context = instance.fetch_post_context(post_id, ancestors=False, descendants=True)
         print_posts(context.descendants, hide_in_reply_to=True)
 
 def print_separator(ch):

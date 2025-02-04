@@ -4,26 +4,27 @@ Usage
 .. code:: console
 
    $ zygolophodon --help
-   usage: zygolophodon [-h] [--version] [--limit N] ADDRESS
+   usage: zygolophodon [-h] [--version] [--limit N] [--with-ancestors] ADDRESS
 
    positional arguments:
-     ADDRESS     @USER@DOMAIN
-                 USER@DOMAIN
-                 https://DOMAIN/@USER
-                 https://DOMAIN/@USER/media
-                 https://DOMAIN/@USER/with_replies
-                 https://DOMAIN/@USER/NNNNNN
-                 https://DOMAIN/@USER/NNNNNN/embed
-                 https://DOMAIN/statuses/NNNNNN
-                 https://DOMAIN/users/USER
-                 https://DOMAIN/users/USER/statuses/NNNNNN
-                 https://DOMAIN/notes/IDENT (Iceshrimp)
-                 https://DOMAIN/notice/IDENT (Pleroma)
+     ADDRESS           @USER@DOMAIN
+                       USER@DOMAIN
+                       https://DOMAIN/@USER
+                       https://DOMAIN/@USER/media
+                       https://DOMAIN/@USER/with_replies
+                       https://DOMAIN/@USER/NNNNNN
+                       https://DOMAIN/@USER/NNNNNN/embed
+                       https://DOMAIN/statuses/NNNNNN
+                       https://DOMAIN/users/USER
+                       https://DOMAIN/users/USER/statuses/NNNNNN
+                       https://DOMAIN/notes/IDENT (Iceshrimp)
+                       https://DOMAIN/notice/IDENT (Pleroma)
 
    options:
-     -h, --help  show this help message and exit
-     --version   show version information and exit
-     --limit N   request at most N posts (default: 40)
+     -h, --help        show this help message and exit
+     --version         show version information and exit
+     --limit N         request at most N posts (default: 40)
+     --with-ancestors  show also post ancestors
 
 Example
 =======
