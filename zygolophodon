@@ -746,15 +746,15 @@ def process_user(instance, username, *, replies=False, media=False, limit=1e999)
         limit -= len(posts)
         links = response.headers.get('Link', '')
         links = parse_links(links)
-        prev_url = links.get('next')
-        if prev_url is None:
+        next_url = links.get('next')
+        if next_url is None:
             break
         if not url.startswith(f'{api}/'):
-            raise RuntimeError(f'suspicious Link URL: {prev_url!r}')
+            raise RuntimeError(f'suspicious Link URL: {next_url!r}')
         url = re.sub(
             r'(?<=[?&]limit=)\d+(?=&|\Z)',
             str(min(limit, page_limit)),
-            prev_url
+            next_url
         )
 
 def process_post(instance, ident, *, with_replies=True):
