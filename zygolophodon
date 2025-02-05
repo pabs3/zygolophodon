@@ -538,12 +538,13 @@ class Instance(abc.ABC):
         q_name = urllib.parse.quote(name)
         return wget_json(f'{api}/accounts/lookup?acct={q_name}')
 
-    def fetch_user_posts(self, user, *, limit=1e999, **params):
+    def _fetch_posts(self, url, *, limit=1e999, **params):
         api = self.api_url
+        url = f'{api}/{url}'
         page_limit = 40
         params['limit'] = min(limit, page_limit)
         q_params = urllib.parse.urlencode(params).lower()
-        url = f'{api}/accounts/{user.id}/statuses?{q_params}'
+        url += f'?{q_params}'
         while limit > 0:
             response = wget(url)
             posts = response.json
@@ -562,6 +563,10 @@ class Instance(abc.ABC):
                 str(min(limit, page_limit)),
                 next_url
             )
+
+    def fetch_user_posts(self, user, *, limit=1e999, **params):
+        url = f'accounts/{user.id}/statuses'
+        return self._fetch_posts(url, limit=limit, **params)
 
     def fetch_post(self, post_id):
         api = self.api_url
