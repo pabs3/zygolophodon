@@ -379,6 +379,7 @@ class AddrParser():
         group2regexp = dict(
             domain=r'[^@/?#\0-\40]+',
             user=r'[^/?#\0-\40]+',
+            tag=r'[^/?#\0-\40]+',
             ident=self._post_id_regexp
         )
         def repl(match):
@@ -461,7 +462,11 @@ def xmain():
     instance = Instance.connect(match.url)
     sys.stdout.flush()
     with StdOut.install():
-        if match.ident is None:
+        if match.tag:
+            process_tag(instance, match.tag,
+                limit=opts.limit,
+            )
+        elif match.ident is None:
             process_user(instance, match.user,
                 replies=bool(match.with_replies),
                 media=bool(match.media),
@@ -512,6 +517,8 @@ class Instance(abc.ABC):
             return None
         if match.user is not None:
             match.user = urllib.parse.unquote(match.user)
+        if match.tag:
+            match.tag = urllib.parse.unquote(match.tag)
         match.url = f'https://{match.domain}'
         del match.domain
         return match
@@ -566,6 +573,11 @@ class Instance(abc.ABC):
 
     def fetch_user_posts(self, user, *, limit=1e999, **params):
         url = f'accounts/{user.id}/statuses'
+        return self._fetch_posts(url, limit=limit, **params)
+
+    def fetch_tag_posts(self, tag_name, *, limit=1e999, **params):
+        q_tag = urllib.parse.quote(tag_name)
+        url = f'timelines/tag/{q_tag}'
         return self._fetch_posts(url, limit=limit, **params)
 
     def fetch_post(self, post_id):
@@ -670,6 +682,8 @@ class Mastodon(Instance):
         # post
         '/@USER/NNNNNN',
         '/@USER/NNNNNN/embed',
+        # tag
+        '/tags/TAG',
         # legacy user-less post
         '/statuses/NNNNNN',
         # URI->URL redirects
@@ -773,6 +787,11 @@ class Pleroma(Instance):
         except KeyError:
             return -1
         return 1
+
+def process_tag(instance, tag_name, *, limit=1e999):
+    # TODO? Print stats from </api/v1/tags/TAG>?
+    posts = instance.fetch_tag_posts(tag_name, limit=limit)
+    print_posts(posts, separators=' - ')
 
 def process_user(instance, username, *, replies=False, media=False, limit=1e999):
     user = instance.fetch_user_by_name(username)
