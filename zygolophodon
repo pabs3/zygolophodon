@@ -324,7 +324,7 @@ def fmt_html(data):
     text = str.join('\n', lines)
     def repl(match):
         (url, foottype, footnote) = match.groups()
-        if url is not None:
+        if url:
             url = fmt_url(url)
             return f'<{url}>'
         else:
@@ -408,7 +408,7 @@ class AddrParser():
     def parse(self, url):
         for regexp in self._regexps:
             match = re.fullmatch(regexp, url)
-            if match is not None:
+            if match:
                 break
         else:
             return None
@@ -455,7 +455,7 @@ def xmain():
         addr, _ = urllib.parse.urldefrag(addr)
     for instance_type in Instance.types:
         match = instance_type.parse_addr(addr)
-        if match is not None:
+        if match:
             break
     else:
         ap.error('unsupported address')
@@ -515,7 +515,7 @@ class Instance(abc.ABC):
         match = cls.addr_parser.parse(addr)  # pylint: disable=no-member
         if not match:
             return None
-        if match.user is not None:
+        if match.user:
             match.user = urllib.parse.unquote(match.user)
         if match.tag:
             match.tag = urllib.parse.unquote(match.tag)
