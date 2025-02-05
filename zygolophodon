@@ -786,6 +786,7 @@ class Pleroma(Instance):
 
     addr_parser = AddrParser(
         '/notice/IDENT',
+        '/tag/TAG',
         post_id_regexp=post_id_regexp,
     )
 

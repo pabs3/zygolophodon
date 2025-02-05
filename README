@@ -20,6 +20,7 @@ Usage
                        https://DOMAIN/users/USER/statuses/NNNNNN
                        https://DOMAIN/notes/IDENT (Iceshrimp)
                        https://DOMAIN/notice/IDENT (Pleroma)
+                       https://DOMAIN/tag/TAG (Pleroma)
 
    options:
      -h, --help        show this help message and exit
