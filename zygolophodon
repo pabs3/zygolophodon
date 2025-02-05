@@ -379,6 +379,7 @@ class AddrParser():
         group2regexp = dict(
             domain=r'[^@/?#\0-\40]+',
             user=r'[^/?#\0-\40]+',
+            # FIXME? This is much more lax that USERNAME_RE in <app/models/account.rb>
             tag=r'[^/?#\0-\40]+',
             ident=self._post_id_regexp
         )
