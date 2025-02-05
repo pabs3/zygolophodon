@@ -181,11 +181,11 @@ class UserAgent():
         except urllib.error.URLError as exc:
             msg = fmt_url_error(exc)
             fatal(f'<{url}>: {msg}')
-        return Response(response)
+        return Response(response, url=url)
 
 class Response():
 
-    def __init__(self, response):
+    def __init__(self, response, *, url):
         with response:
             content_encoding = response.getheader('Content-Encoding', 'identity')
             data = response.read()
@@ -197,10 +197,19 @@ class Response():
             raise RuntimeError(f'unexpected Content-Encoding: {content_encoding!r}')
         self.data = data
         self.headers = response.headers
+        self.url = url
 
     @property
     def json(self):
-        return json.loads(self.data, object_hook=Dict)
+        try:
+            data = json.loads(self.data, object_hook=Dict)
+        except json.JSONDecodeError as exc:
+            if re.match(br'<(!DOCTYPE|html)\b', self.data):
+                msg = 'received HTML instead of JSON'
+            else:
+                msg = f'JSON decoding error: {exc}'
+            fatal(f'<{self.url}>: {msg}')
+        return data
 
 wget = UserAgent.get
 
