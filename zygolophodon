@@ -387,14 +387,14 @@ class AddrParser():
             if match.start() == 0 and s == 'https':
                 return s
             if s.isupper():
-                group = s.lower()
-                if group == 'nnnnnn':
-                    group = 'ident'
-                regexp = group2regexp[group]
+                group = s
+                if group == 'NNNNNN':
+                    group = 'IDENT'
+                regexp = group2regexp[group.lower()]
             else:
                 group = s
                 regexp = re.escape(s)
-            self._groups.add(group)
+            self._groups.add(group.lower())
             return f'(?P<{group}>{regexp})'
         discard = self._discard_prefixes
         if discard:
@@ -413,7 +413,16 @@ class AddrParser():
         else:
             return None
         data = {group: None for group in self._groups}
-        data.update(match.groupdict())
+        data.update(
+            (group, value)
+            for group, value in match.groupdict().items()
+            if not group.isupper()
+        )
+        data.update(
+            (group.lower(), value)
+            for group, value in match.groupdict().items()
+            if group.isupper()
+        )
         return types.SimpleNamespace(**data)
 
 def pint(s):
