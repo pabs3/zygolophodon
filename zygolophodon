@@ -545,7 +545,7 @@ class Instance(abc.ABC):
         q_name = urllib.parse.quote(name)
         return wget_json(f'{api}/accounts/lookup?acct={q_name}')
 
-    def _fetch_posts(self, url, *, limit=1e999, **params):
+    def _fetch_posts(self, url, *, limit, **params):
         api = self.api_url
         url = f'{api}/{url}'
         page_limit = 40
@@ -571,11 +571,11 @@ class Instance(abc.ABC):
                 next_url
             )
 
-    def fetch_user_posts(self, user, *, limit=1e999, **params):
+    def fetch_user_posts(self, user, *, limit, **params):
         url = f'accounts/{user.id}/statuses'
         return self._fetch_posts(url, limit=limit, **params)
 
-    def fetch_tag_posts(self, tag_name, *, limit=1e999, **params):
+    def fetch_tag_posts(self, tag_name, *, limit, **params):
         q_tag = urllib.parse.quote(tag_name)
         url = f'timelines/tag/{q_tag}'
         return self._fetch_posts(url, limit=limit, **params)
@@ -788,12 +788,12 @@ class Pleroma(Instance):
             return -1
         return 1
 
-def process_tag(instance, tag_name, *, limit=1e999):
+def process_tag(instance, tag_name, *, limit):
     # TODO? Print stats from </api/v1/tags/TAG>?
     posts = instance.fetch_tag_posts(tag_name, limit=limit)
     print_posts(posts, separators=' - ')
 
-def process_user(instance, username, *, replies=False, media=False, limit=1e999):
+def process_user(instance, username, *, replies=False, media=False, limit):
     user = instance.fetch_user_by_name(username)
     print('User:', fmt_user(user))
     if user.note:
