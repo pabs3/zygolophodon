@@ -725,6 +725,8 @@ class Mastodon(Instance):
         if match:
             # FIXME in Mastodon?
             # Why is the URL unhelpful for reblogs?
+            # https://github.com/mastodon/mastodon/pull/4672
+            # hints this may be deliberate.
             (user, post_id) = match.groups()
             url = f'{self.url}/@{user}/{post_id}'
         return url
