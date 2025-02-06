@@ -335,7 +335,7 @@ def fmt_html(data):
     text = str.join('\n', lines)
     def repl(match):
         (url, foottype, footnote) = match.groups()
-        if url:
+        if url is not None:
             url = fmt_url(url)
             return f'<{url}>'
         else:
