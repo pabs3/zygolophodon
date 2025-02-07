@@ -285,8 +285,6 @@ class HTMLParser(html.parser.HTMLParser):
                     cc = '\N{DC1}\N{DC2}'[text[0] != '@']
                     st.text += f'{cc}{text[1:]}\N{ETX}'
                     st.footnotes[text] = href
-                elif re.fullmatch(r'#\w+', text):
-                    st.text += '\N{DC2}' + text[1:]
                 else:
                     if st.a_href in {text, f'http://{text}', f'https://{text}'}:
                         text = ''
