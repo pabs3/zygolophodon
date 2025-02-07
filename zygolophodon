@@ -733,6 +733,7 @@ class Mastodon(Instance):
 class Iceshrimp(Instance):
 
     # Codebase: https://iceshrimp.dev/
+    # Forks: https://codeberg.org/catodon/catodon
 
     post_url_template = '/notes/IDENT'
 
@@ -765,7 +766,7 @@ class Iceshrimp(Instance):
 
     @classmethod
     def identify(cls, data):
-        if re.search(r'\bIceshrimp\b', data.version):
+        if re.search(r'\b(Iceshrimp|Catodon)\b', data.version):
             return 1
         return -1
 
