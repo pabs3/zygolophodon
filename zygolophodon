@@ -450,6 +450,12 @@ class AddrParser():
         )
         return types.SimpleNamespace(**data)
 
+def parse_addr(addr):
+    for instance_type in Instance.types:
+        if match := instance_type.parse_addr(addr):
+            return match
+    return None
+
 def pint(s):
     n = int(s)
     if n > 0:
@@ -487,10 +493,7 @@ def xmain():
     if '/' in addr:
         # strip URL fragment
         addr, _ = urllib.parse.urldefrag(addr)
-    for instance_type in Instance.types:
-        if match := instance_type.parse_addr(addr):
-            break
-    else:
+    if not (match := parse_addr(addr)):
         ap.error('unsupported address')
     sys.stdout.flush()
     with StdOut.install():
