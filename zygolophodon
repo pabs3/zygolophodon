@@ -530,7 +530,6 @@ class Instance(abc.ABC):
     def __init__(self, url, data):
         self.data = data
         self.url = url
-        self.api_url = f'{url}/api/v1'
 
     @classmethod
     def parse_addr(cls, addr):
@@ -547,8 +546,8 @@ class Instance(abc.ABC):
 
     @staticmethod
     def connect(url):
-        api = Mastodon(url, None).api_url
-        data = wget_json(f'{api}/instance')
+        instance = Mastodon(url, None)
+        data = instance._fetch('instance')  # pylint: disable=protected-access
         inst_types = sorted(
             Instance.types,
             key=(lambda t: t.identify(data)),
@@ -562,14 +561,19 @@ class Instance(abc.ABC):
     def identify(cls, data):
         pass
 
+    def _api_url(self, url):
+        return f'{self.url}/api/v1/{url}'
+
+    def _fetch(self, url):
+        url = self._api_url(url)
+        return wget_json(url)
+
     def fetch_user_by_name(self, name):
-        api = self.api_url
         q_name = urllib.parse.quote(name)
-        return wget_json(f'{api}/accounts/lookup?acct={q_name}')
+        return self._fetch(f'accounts/lookup?acct={q_name}')
 
     def _fetch_posts(self, url, *, limit, **params):
-        api = self.api_url
-        url = f'{api}/{url}'
+        url = self._api_url(url)
         page_limit = 40
         params['limit'] = min(limit, page_limit)
         q_params = urllib.parse.urlencode(params).lower()
@@ -585,7 +589,7 @@ class Instance(abc.ABC):
             next_url = links.get('next')
             if next_url is None:
                 break
-            if not url.startswith(f'{api}/'):
+            if not url.startswith(self._api_url('')):
                 raise RuntimeError(f'suspicious Link URL: {next_url!r}')
             url = re.sub(
                 r'(?<=[?&]limit=)\d+(?=&|\Z)',
@@ -603,8 +607,7 @@ class Instance(abc.ABC):
         return self._fetch_posts(url, limit=limit, **params)
 
     def fetch_post(self, post_id):
-        api = self.api_url
-        post = wget_json(f'{api}/statuses/{post_id}')
+        post = self._fetch(f'statuses/{post_id}')
         self.fix_post(post)
         return post
 
@@ -612,8 +615,7 @@ class Instance(abc.ABC):
         if not (ancestors or descendants):
             # shortcut:
             return Dict(ancestors=None, descendants=None)
-        api = self.api_url
-        context = wget_json(f'{api}/statuses/{post_id}/context')
+        context = self._fetch(f'statuses/{post_id}/context')
         if ancestors:
             self.fix_posts(context.ancestors)
         else:
