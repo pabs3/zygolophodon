@@ -281,7 +281,10 @@ class HTMLParser(html.parser.HTMLParser):
             if st.a_depth == 0:
                 text = st.a_text
                 href = st.a_href
-                if re.fullmatch(r'[@#]\w+', text) and st.footnotes.get(text, href) == href:
+                if re.fullmatch(r'#[\w_]+|@[\w_.-]+(@[\w.-]+)?', text) and st.footnotes.get(text, href) == href:
+                    # The above should be close enough to Mastodon's own regexps:
+                    # + HASHTAG_RE in <app/models/tag.rb>;
+                    # + MENTION_RE in <app/models/account.rb>.
                     cc = '\N{DC1}\N{DC2}'[text[0] != '@']
                     st.text += f'{cc}{text[1:]}\N{ETX}'
                     st.footnotes[text] = href
@@ -342,7 +345,7 @@ def fmt_html(data):
             prefix = '@#'[foottype != '\N{DC1}']
             footnote = prefix + footnote
             return fmt_url(footnote)
-    text = re.sub('\N{STX}(.*?)\N{ETX}|([\N{DC1}\N{DC2}])(\\w+)\N{ETX}', repl, text, flags=re.DOTALL)
+    text = re.sub('\N{STX}(.*?)\N{ETX}|([\N{DC1}\N{DC2}])([\\w@_.-]+)\N{ETX}', repl, text, flags=re.DOTALL)
     lines = [text]
     if parser.z_state.footnotes:
         for footnote, url in parser.z_state.footnotes.items():
