@@ -39,7 +39,7 @@ jobs:
         ./zygolophodon https://infosec.exchange/@lcamtuf/109537142030669006
     - name: Pleroma network test
       run: |
-        ./zygolophodon https://pleroma.debian.social/notice/ApspySbhKOv7MAQZPM
+        ./zygolophodon https://pleroma.debian.social/notice/AqwWcQzKs77mVpuyOm
     - name: install
       run: |
         make install PREFIX=~/.local
