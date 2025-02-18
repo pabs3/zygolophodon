@@ -22,6 +22,7 @@ import subprocess
 import sys
 import textwrap
 import types
+import unicodedata
 import urllib.parse
 import urllib.request
 
@@ -30,6 +31,15 @@ int(0_0)  # Python >= 3.6 is required
 __version__ = '0'  # not released yet
 
 text_width = int(os.getenv('ZYGOLOPHODON_COLUMNS', '78'))
+
+def wcwidth(ch):
+    # poor man's wcwidth(3)
+    wd = unicodedata.east_asian_width(ch)
+    return 1 + (wd in {'F', 'W'})
+
+def wcswidth(s):
+    # poor man's wcswidth(3)
+    return sum(map(wcwidth, s))
 
 class Symbol():
 
@@ -41,7 +51,7 @@ class Symbol():
             (text, width) = match.groups()
             width = int(width)
         else:
-            width = 1
+            width = wcswidth(text)
         self._text = text
         self.width = width
 
