@@ -102,7 +102,9 @@ class StdOut(io.TextIOBase):
 
     def _get_fp(self):
         if http.client.HTTPConnection.debuglevel:
-            # Redirect http.client's debug messages to stderr:
+            # Eww, FIXME in Python?
+            # http.client prints debug messages to stdout.
+            # Let's redirect them to stderr:
             for frameinfo in inspect.stack(context=0):
                 if frameinfo.filename == http.client.__file__:
                     return sys.__stderr__
