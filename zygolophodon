@@ -27,7 +27,7 @@ import unicodedata
 import urllib.parse
 import urllib.request
 
-int(0_0)  # Python >= 3.6 is required
+type(lambda x, /: x)  # Python >= 3.8 is required
 
 __version__ = '0'  # not released yet
 
