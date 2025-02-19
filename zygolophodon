@@ -47,8 +47,7 @@ class Symbol():
     def __init__(self, name):
         name = name.upper().replace(' ', '_')
         text = os.getenv(f'ZYGOLOPHODON_{name}', '*')
-        match = re.fullmatch('(.*):([0-9]+)', text)
-        if match:
+        if match := re.fullmatch('(.*):([0-9]+)', text):
             (text, width) = match.groups()
             width = int(width)
         else:
@@ -434,8 +433,7 @@ class AddrParser():
 
     def parse(self, url):
         for regexp in self._regexps:
-            match = re.fullmatch(regexp, url)
-            if match:
+            if match := re.fullmatch(regexp, url):
                 break
         else:
             return None
@@ -490,8 +488,7 @@ def xmain():
         # strip URL fragment
         addr, _ = urllib.parse.urldefrag(addr)
     for instance_type in Instance.types:
-        match = instance_type.parse_addr(addr)
-        if match:
+        if match := instance_type.parse_addr(addr):
             break
     else:
         ap.error('unsupported address')
