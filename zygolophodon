@@ -182,12 +182,13 @@ class UserAgent():
                 Handler(debuglevel=http.client.HTTPConnection.debuglevel)
                 for Handler in [urllib.request.HTTPHandler, urllib.request.HTTPSHandler]
             ]
-        return urllib.request.build_opener(*handlers)
+        opener = urllib.request.build_opener(*handlers)
+        opener.addheaders[:] = cls.headers.items()
+        return opener
 
     @classmethod
     def get(cls, url):
-        headers = dict(cls.headers)
-        request = urllib.request.Request(url, headers=headers)
+        request = urllib.request.Request(url)
         opener = cls._build_opener()
         try:
             response = opener.open(request)
