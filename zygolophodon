@@ -101,7 +101,7 @@ class StdOut(io.TextIOBase):
         self._install_pager()
 
     def _get_fp(self):
-        if UserAgent.debug_level:
+        if http.client.HTTPConnection.debuglevel:
             # Redirect http.client's debug messages to stderr:
             for frameinfo in inspect.stack(context=0):
                 if frameinfo.filename == http.client.__file__:
@@ -170,18 +170,18 @@ class UserAgent():
         'User-Agent': 'zygolophodon (https://github.com/jwilk/zygolophodon)',
         'Accept-Encoding': 'gzip',
     }
-    debug_level = 0
 
     @classmethod
     def _build_opener(cls):
-        # Work-around for <https://github.com/python/cpython/issues/99352>
-        # ("urllib.request.urlopen() no longer respects the
-        # http.client.HTTPConnection.debuglevel").
-        # TODO: Get rid of this once Python < 3.12 is no longer supported.
-        handlers = [
-            Handler(debuglevel=cls.debug_level)
-            for Handler in [urllib.request.HTTPHandler, urllib.request.HTTPSHandler]
-        ]
+        handlers = ()
+        if sys.version_info < (3, 13):
+            # Work-around for <https://github.com/python/cpython/issues/99352>
+            # ("urllib.request.urlopen() no longer respects the
+            # http.client.HTTPConnection.debuglevel").
+            handlers = [
+                Handler(debuglevel=http.client.HTTPConnection.debuglevel)
+                for Handler in [urllib.request.HTTPHandler, urllib.request.HTTPSHandler]
+            ]
         return urllib.request.build_opener(*handlers)
 
     @classmethod
@@ -481,7 +481,7 @@ def xmain():
     ap.add_argument('addr', metavar='ADDRESS', help=addr_help)
     opts = ap.parse_args()
     if opts.debug_http:
-        UserAgent.debug_level = 1
+        http.client.HTTPConnection.debuglevel = 1
     addr = opts.addr
     if '/' in addr:
         # strip URL fragment
