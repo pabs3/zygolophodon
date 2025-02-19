@@ -495,9 +495,9 @@ def xmain():
             break
     else:
         ap.error('unsupported address')
-    instance = Instance.connect(match.url)
     sys.stdout.flush()
     with StdOut.install():
+        instance = Instance.connect(match.url)
         if match.tag:
             process_tag(instance, match.tag,
                 limit=opts.limit,
