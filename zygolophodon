@@ -653,6 +653,13 @@ class Instance(abc.ABC):
         if post.in_reply_to_id:
             irt_url = self.get_post_url(post_id=post.in_reply_to_id)
         post.in_reply_to_url = irt_url
+        try:
+            post.edited_at
+        except KeyError:
+            # * In Mastodon, the attribute is available only since v3.5.0.
+            # * FIXME in Pleroma?
+            #   Why is the attribute missing for reblogs?
+            post.edited_at = None
         if post.reblog:
             self.fix_post(post.reblog)
             if post.url == post.reblog.uri:
@@ -661,12 +668,6 @@ class Instance(abc.ABC):
                 post.url = self.get_post_url(post_id=post.id)
             if post.uri == post.reblog.uri:
                 post.uri = None
-            try:
-                post.edited_at
-            except KeyError:
-                # FIXME in Pleroma?
-                # Why is the attribute missing?
-                post.edited_at = None
         post.url = self.get_fixed_post_url(post.url)
 
     def fix_posts(self, posts):
