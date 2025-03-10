@@ -264,7 +264,7 @@ class HTMLParser(html.parser.HTMLParser):
             footnotes = {}
         self.z_state = state
 
-    # FIXME: Add proper suport for:
+    # FIXME: Add proper support for:
     # * <ol>, <ul>, <li>
     # * <blockquote>
     # * <pre>
