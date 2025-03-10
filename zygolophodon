@@ -8,6 +8,7 @@ import abc
 import argparse
 import contextlib
 import errno
+import functools
 import gzip
 import html.parser
 import http.client
@@ -32,6 +33,9 @@ type(lambda x, /: x)  # Python >= 3.8 is required
 __version__ = '0'  # not released yet
 
 text_width = int(os.getenv('ZYGOLOPHODON_COLUMNS', '78'))
+
+if sys.version_info < (3, 9):
+    functools.cache = functools.lru_cache(maxsize=None)
 
 def wcwidth(ch):
     # poor man's wcwidth(3)
@@ -855,14 +859,18 @@ def process_user(instance, username, *, replies=False, media=False, limit):
 
 def process_post(instance, post_id, *, with_replies=True, with_ancestors=False):
     post = instance.fetch_post(post_id)
-    context = instance.fetch_post_context(post_id,
-        ancestors=with_ancestors,
-        descendants=with_replies,
-    )
+    @functools.cache
+    def get_context():
+        return instance.fetch_post_context(post_id,
+            ancestors=with_ancestors,
+            descendants=with_replies,
+        )
     if with_ancestors:
+        context = get_context()
         print_posts(context.ancestors, hide_in_reply_to=True, separators=' -=')
     print_post(post, hide_in_reply_to=with_ancestors)
     if with_replies:
+        context = get_context()
         print_posts(context.descendants, hide_in_reply_to=True, separators='=- ')
 
 def print_separator(ch):
