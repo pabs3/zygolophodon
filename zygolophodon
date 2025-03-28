@@ -546,8 +546,8 @@ class Instance(abc.ABC):
     addr_parser = abstractattribute()
 
     def __init__(self, url, data):
-        self.data = data
         self.url = url
+        self.data = data
 
     @classmethod
     def parse_addr(cls, addr):
