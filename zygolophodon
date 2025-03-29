@@ -729,6 +729,8 @@ class Mastodon(Instance):
         '/tags/TAG',
         # legacy user-less post
         '/statuses/NNNNNN',
+        # offsite redirect pages
+        '/redirect/statuses/NNNNNN',
         # URI->URL redirects
         '/users/USER',
         '/users/USER/statuses/NNNNNN',

@@ -16,6 +16,7 @@ Usage
                        https://DOMAIN/@USER/NNNNNN/embed
                        https://DOMAIN/tags/TAG
                        https://DOMAIN/statuses/NNNNNN
+                       https://DOMAIN/redirect/statuses/NNNNNN
                        https://DOMAIN/users/USER
                        https://DOMAIN/users/USER/statuses/NNNNNN
                        https://DOMAIN/notes/IDENT (Iceshrimp)
